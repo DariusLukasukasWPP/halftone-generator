@@ -352,8 +352,95 @@
 
         #image-upload { display: none; }
 
-        /* Hidden elements for processing */
-        #hidden-container { display: none; }
+        .hint {
+            font-size: 0.78rem;
+            opacity: 0.6;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        #source-info {
+            margin-top: -4px;
+            font-weight: 600;
+            opacity: 0.75;
+            overflow-wrap: break-word;
+        }
+
+        /* --- Video Controls --- */
+        #video-group { display: none; }
+
+        .video-transport {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        button.icon-btn {
+            flex: 0 0 auto;
+            min-width: 0;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 0.9rem;
+            letter-spacing: 0;
+            line-height: 1;
+            background-color: var(--color-accent);
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(255, 100, 0, 0.25);
+        }
+        button.icon-btn:hover:not(:disabled) {
+            background-color: var(--color-accent-hover);
+            transform: translateY(-1px);
+        }
+        button.icon-btn:active:not(:disabled) { transform: translateY(1px); }
+
+        #timeline {
+            flex: 1;
+            margin: 0;
+            min-width: 0;
+        }
+
+        .time-code {
+            flex: 0 0 auto;
+            font-variant-numeric: tabular-nums;
+            font-size: 0.78rem;
+            font-weight: 700;
+            opacity: 0.7;
+            white-space: nowrap;
+        }
+
+        label.checkbox-row {
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+        label.checkbox-row input {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--color-accent);
+            cursor: pointer;
+        }
+
+        button.recording {
+            background-color: var(--color-text) !important;
+            border-color: var(--color-text) !important;
+            color: #ffffff !important;
+        }
+
+        /* Hidden elements for processing — kept off-screen rather than
+           display:none so the browser keeps decoding video frames. */
+        #hidden-container {
+            position: fixed;
+            left: -10000px;
+            top: 0;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -365,10 +452,47 @@
 <main>
     <section id="controls-pane">
         <label id="file-input-label" for="image-upload">
-            Upload Source Image
+            Upload Source Image or Video
             <span>Click or drag file here</span>
-            <input type="file" id="image-upload" accept="image/*">
+            <input type="file" id="image-upload" accept="image/*,video/*">
         </label>
+        <p class="hint" id="source-info">No source loaded.</p>
+
+        <div class="control-group" id="video-group">
+            <h3>Video Playback</h3>
+            <div class="video-transport">
+                <button type="button" id="btn-play" class="icon-btn" title="Play / Pause">▶</button>
+                <input type="range" id="timeline" min="0" max="1000" value="0" step="1">
+                <span class="time-code" id="time-code">0:00 / 0:00</span>
+            </div>
+            <div class="control-item">
+                <label class="checkbox-row" for="video-loop">
+                    <input type="checkbox" id="video-loop" checked="">
+                    Loop playback
+                </label>
+            </div>
+            <div class="control-item">
+                <label for="preview-fps">Preview Frame Rate</label>
+                <select id="preview-fps">
+                    <option value="8">8 fps (fastest)</option>
+                    <option value="12">12 fps</option>
+                    <option value="15" selected="">15 fps</option>
+                    <option value="24">24 fps</option>
+                    <option value="30">30 fps</option>
+                </select>
+            </div>
+            <div class="control-item">
+                <label for="max-frame">Max Frame Size</label>
+                <select id="max-frame">
+                    <option value="480">480 px (fastest)</option>
+                    <option value="720" selected="">720 px</option>
+                    <option value="1080">1080 px</option>
+                    <option value="0">Original resolution</option>
+                </select>
+                <p class="hint" style="margin-top: 8px;">Longest edge of the rendered frame. Every dot is redrawn each
+                frame, so lower values keep playback smooth on large clips.</p>
+            </div>
+        </div>
 
         <div class="control-group">
             <h3>Sizing &amp; Grid</h3>
@@ -464,9 +588,12 @@
             <button id="btn-reset" class="secondary">Reset Settings</button>
             <button id="btn-generate" class="primary" disabled="">Generate Bitmap</button>
         </div>
-        <div class="btn-row" style="margin-bottom: 20px;">
+        <div class="btn-row">
             <button id="btn-export-png" class="secondary" disabled="">Download PNG</button>
             <button id="btn-export-svg" class="secondary" disabled="">Download SVG</button>
+        </div>
+        <div class="btn-row" id="video-export-row" style="display:none; margin-bottom: 20px;">
+            <button id="btn-export-video" class="secondary" disabled="">Record WebM</button>
         </div>
 
     </section>
@@ -476,10 +603,11 @@
     </section>
 </main>
 
-<!-- Hidden elements for image processing -->
+<!-- Hidden elements for image / video processing -->
 <div id="hidden-container">
     <canvas id="offscreen-canvas"></canvas>
     <img id="source-image">
+    <video id="source-video" muted="" playsinline="" preload="auto"></video>
 </div>
 
 <script>
@@ -500,6 +628,8 @@
         dotColorHex: document.getElementById('dot-color-hex'),
         bgColor: document.getElementById('bg-color'),
         bgColorHex: document.getElementById('bg-color-hex'),
+        previewFps: document.getElementById('preview-fps'),
+        maxFrame: document.getElementById('max-frame'),
     };
 
     const valDisplays = {
@@ -517,17 +647,43 @@
     const mainCanvas = document.getElementById('main-canvas');
     const mainCtx = mainCanvas.getContext('2d');
     const offscreenCanvas = document.getElementById('offscreen-canvas');
-    const offscreenCtx = offscreenCanvas.getContext('2d');
+    const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
     const sourceImage = document.getElementById('source-image');
+    const sourceVideo = document.getElementById('source-video');
 
     const btnGenerate = document.getElementById('btn-generate');
     const btnExportPng = document.getElementById('btn-export-png');
     const btnExportSvg = document.getElementById('btn-export-svg');
+    const btnExportVideo = document.getElementById('btn-export-video');
     const btnReset = document.getElementById('btn-reset');
 
+    const videoGroup = document.getElementById('video-group');
+    const videoExportRow = document.getElementById('video-export-row');
+    const btnPlay = document.getElementById('btn-play');
+    const timeline = document.getElementById('timeline');
+    const timeCode = document.getElementById('time-code');
+    const videoLoop = document.getElementById('video-loop');
+    const sourceInfo = document.getElementById('source-info');
+
+    const canRecord = typeof MediaRecorder !== 'undefined' &&
+                      typeof mainCanvas.captureStream === 'function';
+
     // --- State ---
-    let isImageLoaded = false;
-    let currentSVGString = '';
+    // source.el is either the <img> or the <video>; everything downstream
+    // samples it the same way, so the pipeline is shared between both.
+    let source = { type: null, el: null, name: '' };
+    let sourceUrl = null;      // object URL for the loaded video, if any
+    let usingDataUrl = false;  // set if we had to fall back off blob URLs
+    let isSourceLoaded = false;
+    let halftoneActive = false; // true once "Generate" has been pressed
+    let lastData = null;        // dot data behind the frame currently on canvas
+    let jitterSeed = 1;         // stable seed so jitter doesn't shimmer per frame
+    let rafId = null;
+    let lastFrameStamp = 0;
+    let pendingFrame = false;
+    let isScrubbing = false;
+    let recorder = null;
+    let recordChunks = [];
 
     // --- Event Listeners for Controls (Update displays & UI logic) ---
     function setupControlListeners() {
@@ -535,22 +691,68 @@
             const input = controls[key];
             if (input.type === 'range') {
                 input.addEventListener('input', () => {
-                    valDisplays[key].textContent = input.value;
+                    if (valDisplays[key]) valDisplays[key].textContent = input.value;
                     validateMinMax();
+                    onSettingsChanged();
                 });
+            } else {
+                input.addEventListener('change', onSettingsChanged);
             }
         }
 
         controls.renderMode.addEventListener('change', toggleThresholdControl);
         controls.colorMode.addEventListener('change', toggleColorControl);
+        controls.maxFrame.addEventListener('change', applySourceSize);
 
         // Sync Hex/Color Pickers
         controls.dotColor.addEventListener('input', (e) => controls.dotColorHex.value = e.target.value.toUpperCase());
         controls.dotColorHex.addEventListener('change', (e) => controls.dotColor.value = ensureHex(e.target.value));
         controls.bgColor.addEventListener('input', (e) => controls.bgColorHex.value = e.target.value.toUpperCase());
         controls.bgColorHex.addEventListener('change', (e) => controls.bgColor.value = ensureHex(e.target.value));
+        controls.dotColor.addEventListener('input', onSettingsChanged);
+        controls.bgColor.addEventListener('input', onSettingsChanged);
 
         btnReset.addEventListener('click', resetControls);
+
+        setupVideoListeners();
+    }
+
+    // Video previews update live, so a settings tweak repaints the paused frame
+    // straight away. Stills keep the original behaviour: press Generate.
+    function onSettingsChanged() {
+        if (source.type === 'video' && isSourceLoaded && sourceVideo.paused) scheduleFrame();
+    }
+
+    function setupVideoListeners() {
+        btnPlay.addEventListener('click', togglePlay);
+
+        videoLoop.addEventListener('change', () => { sourceVideo.loop = videoLoop.checked; });
+
+        timeline.addEventListener('pointerdown', () => { isScrubbing = true; });
+        timeline.addEventListener('pointerup', () => { isScrubbing = false; });
+        timeline.addEventListener('input', () => {
+            if (!isSourceLoaded || source.type !== 'video') return;
+            const duration = getDuration();
+            if (!duration) return;
+            sourceVideo.currentTime = (timeline.value / 1000) * duration;
+            updateTimeCode();
+        });
+        timeline.addEventListener('change', () => { isScrubbing = false; });
+
+        sourceVideo.addEventListener('seeked', () => {
+            if (sourceVideo.paused) scheduleFrame();
+            updateTimeUI();
+        });
+        sourceVideo.addEventListener('play', () => { updatePlayButton(); startPreview(); });
+        sourceVideo.addEventListener('pause', () => {
+            updatePlayButton();
+            stopPreview();
+            scheduleFrame();
+        });
+        sourceVideo.addEventListener('ended', () => {
+            updatePlayButton();
+            if (recorder) finishRecording();
+        });
     }
 
     function ensureHex(val) {
@@ -580,54 +782,319 @@
         document.getElementById('dot-color-control').style.display = isSingle ? 'block' : 'none';
     }
 
-    // --- Image Loading ---
+    // --- Source Loading (Image or Video) ---
     imageUpload.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            sourceImage.onload = function() {
-                isImageLoaded = true;
-                btnGenerate.disabled = false;
-                // Set canvas dimensions to match image
-                mainCanvas.width = sourceImage.width;
-                mainCanvas.height = sourceImage.height;
-                offscreenCanvas.width = sourceImage.width;
-                offscreenCanvas.height = sourceImage.height;
-                // Draw initial preview (plain image)
-                mainCtx.drawImage(sourceImage, 0, 0);
-            };
-            sourceImage.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
+        loadFile(file);
     });
+
+    function loadFile(file) {
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+
+        if (!isVideo && !isImage) {
+            sourceInfo.textContent = `Unsupported file type: ${file.type || file.name}`;
+            return;
+        }
+
+        resetSource();
+        source.name = file.name;
+        sourceInfo.textContent = `Loading ${file.name}…`;
+
+        if (isVideo) {
+            sourceUrl = URL.createObjectURL(file);
+            source.type = 'video';
+            source.el = sourceVideo;
+
+            sourceVideo.onloadedmetadata = () => {
+                applySourceSize();
+                timeline.value = 0;
+                updateTimeCode();
+            };
+            sourceVideo.onloadeddata = () => {
+                if (!verifyReadable(file)) return;
+                isSourceLoaded = true;
+                btnGenerate.disabled = false;
+                btnGenerate.textContent = 'Generate & Play';
+                videoGroup.style.display = 'block';
+                videoExportRow.style.display = 'flex';
+                // Recording captures the halftone canvas, so it only makes sense
+                // once Generate has produced one. generate() enables it.
+                btnExportVideo.disabled = true;
+                btnExportVideo.title = canRecord ? '' : 'Canvas recording is not supported in this browser.';
+                sourceVideo.loop = videoLoop.checked;
+                jitterSeed = (Math.random() * 0xffffff) | 0;
+                describeSource();
+                drawFrame();
+                updatePlayButton();
+            };
+            sourceVideo.onerror = () => {
+                sourceInfo.textContent = `Could not decode ${file.name}. Try an MP4 (H.264) or WebM file.`;
+            };
+            sourceVideo.src = sourceUrl;
+            sourceVideo.load();
+        } else {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                source.type = 'image';
+                source.el = sourceImage;
+                sourceImage.onload = function() {
+                    isSourceLoaded = true;
+                    btnGenerate.disabled = false;
+                    btnGenerate.textContent = 'Generate Bitmap';
+                    applySourceSize();
+                    describeSource();
+                    drawFrame();
+                };
+                sourceImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Sampling a video frame needs the canvas to stay untainted. A blob URL is
+    // the cheap way to feed the <video>, but some browsers refuse to expose its
+    // pixels when the page itself was opened straight from disk (file://). Probe
+    // once, and fall back to a data URL — costlier in memory, always readable.
+    function verifyReadable(file) {
+        try {
+            offscreenCtx.drawImage(sourceVideo, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+            offscreenCtx.getImageData(0, 0, 1, 1);
+            return true;
+        } catch (err) {
+            if (usingDataUrl) {
+                sourceInfo.textContent = 'This browser will not allow reading pixels from the video. ' +
+                    'Try serving the page over http:// instead of opening it from disk.';
+                return false;
+            }
+            usingDataUrl = true;
+            sourceInfo.textContent = `Preparing ${file.name}…`;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (sourceUrl) { URL.revokeObjectURL(sourceUrl); sourceUrl = null; }
+                sourceVideo.src = e.target.result;
+                sourceVideo.load();
+            };
+            reader.readAsDataURL(file);
+            return false;
+        }
+    }
+
+    // Tear down whatever was loaded before so switching sources is clean.
+    function resetSource() {
+        stopPreview();
+        if (recorder) abortRecording();
+        // Detach first: clearing src can fire a spurious error/load event that
+        // would otherwise report against the file we are about to open.
+        sourceVideo.onloadedmetadata = null;
+        sourceVideo.onloadeddata = null;
+        sourceVideo.onerror = null;
+        sourceImage.onload = null;
+        sourceVideo.pause();
+        sourceVideo.removeAttribute('src');
+        sourceVideo.load();
+        if (sourceUrl) {
+            URL.revokeObjectURL(sourceUrl);
+            sourceUrl = null;
+        }
+        source = { type: null, el: null, name: '' };
+        usingDataUrl = false;
+        isSourceLoaded = false;
+        halftoneActive = false;
+        lastData = null;
+        videoGroup.style.display = 'none';
+        videoExportRow.style.display = 'none';
+        btnGenerate.disabled = true;
+        btnExportPng.disabled = true;
+        btnExportSvg.disabled = true;
+        btnExportVideo.disabled = true;
+    }
+
+    function naturalSize() {
+        if (source.type === 'video') {
+            return { w: sourceVideo.videoWidth, h: sourceVideo.videoHeight };
+        }
+        if (source.type === 'image') {
+            return { w: sourceImage.naturalWidth, h: sourceImage.naturalHeight };
+        }
+        return { w: 0, h: 0 };
+    }
+
+    // Videos are optionally downscaled: a full-resolution frame can mean tens of
+    // thousands of circles per frame, which no longer plays back in real time.
+    function targetSize() {
+        const { w, h } = naturalSize();
+        const cap = source.type === 'video' ? parseInt(controls.maxFrame.value) : 0;
+        const longest = Math.max(w, h);
+        if (!cap || !longest || longest <= cap) return { w, h };
+        const scale = cap / longest;
+        return { w: Math.max(1, Math.round(w * scale)), h: Math.max(1, Math.round(h * scale)) };
+    }
+
+    function applySourceSize() {
+        if (!source.type) return;
+        const { w, h } = targetSize();
+        if (!w || !h) return;
+        mainCanvas.width = w;
+        mainCanvas.height = h;
+        offscreenCanvas.width = w;
+        offscreenCanvas.height = h;
+        describeSource();
+        if (isSourceLoaded) scheduleFrame();
+    }
+
+    function describeSource() {
+        if (!source.type) {
+            sourceInfo.textContent = 'No source loaded.';
+            return;
+        }
+        const nat = naturalSize();
+        const out = targetSize();
+        const scaled = (nat.w !== out.w || nat.h !== out.h) ? ` → rendering at ${out.w}×${out.h}` : '';
+        const kind = source.type === 'video' ? 'Video' : 'Image';
+        sourceInfo.textContent = `${kind}: ${source.name} — ${nat.w}×${nat.h}${scaled}`;
+    }
+
+    // --- Playback & Frame Scheduling ---
+    function getDuration() {
+        const d = sourceVideo.duration;
+        return (isFinite(d) && d > 0) ? d : 0;
+    }
+
+    function togglePlay() {
+        if (source.type !== 'video' || !isSourceLoaded) return;
+        if (sourceVideo.paused) {
+            if (sourceVideo.ended) sourceVideo.currentTime = 0;
+            sourceVideo.play().catch(() => {});
+        } else {
+            sourceVideo.pause();
+        }
+    }
+
+    function updatePlayButton() {
+        btnPlay.textContent = (source.type === 'video' && !sourceVideo.paused) ? '❚❚' : '▶';
+    }
+
+    function formatTime(secs) {
+        if (!isFinite(secs) || secs < 0) secs = 0;
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateTimeCode() {
+        timeCode.textContent = `${formatTime(sourceVideo.currentTime)} / ${formatTime(getDuration())}`;
+    }
+
+    function updateTimeUI() {
+        if (source.type !== 'video') return;
+        const duration = getDuration();
+        if (duration && !isScrubbing) {
+            timeline.value = Math.round((sourceVideo.currentTime / duration) * 1000);
+        }
+        updateTimeCode();
+    }
+
+    // Continuous loop while the video plays, throttled to the chosen preview fps
+    // so slider interaction stays responsive on heavy frames.
+    function startPreview() {
+        if (rafId !== null) return;
+        lastFrameStamp = 0;
+        rafId = requestAnimationFrame(previewLoop);
+    }
+
+    function stopPreview() {
+        if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+    }
+
+    function previewLoop(stamp) {
+        rafId = requestAnimationFrame(previewLoop);
+        const interval = 1000 / parseInt(controls.previewFps.value);
+        if (stamp - lastFrameStamp < interval) return;
+        lastFrameStamp = stamp;
+        drawFrame();
+        updateTimeUI();
+        if (recorder) updateRecordProgress();
+    }
+
+    // One-shot repaint, coalesced so a burst of control changes costs one render.
+    function scheduleFrame() {
+        if (pendingFrame || !isSourceLoaded) return;
+        pendingFrame = true;
+        requestAnimationFrame(() => {
+            pendingFrame = false;
+            drawFrame();
+        });
+    }
+
+    function drawFrame() {
+        if (!source.el) return;
+        if (halftoneActive) renderCanvas();
+        else drawPlainFrame();
+    }
+
+    function drawPlainFrame() {
+        mainCtx.fillStyle = '#ffffff';
+        mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+        mainCtx.drawImage(source.el, 0, 0, mainCanvas.width, mainCanvas.height);
+    }
 
 
     // --- Generation Logic (The Core) ---
     btnGenerate.addEventListener('click', generate);
 
     function generate() {
-        if (!isImageLoaded) return;
+        if (!isSourceLoaded) return;
+
+        const isVideo = source.type === 'video';
+        const restoreLabel = isVideo ? 'Generate & Play' : 'Generate Bitmap';
 
         btnGenerate.textContent = 'Generating...';
         btnGenerate.disabled = true;
 
         // Small timeout to allow UI to update
         setTimeout(() => {
+            halftoneActive = true;
+            // Stills get a fresh jitter pattern per press; a video keeps one seed
+            // for its whole run so the dot pattern stays put between frames.
+            if (!isVideo) jitterSeed = (Math.random() * 0xffffff) | 0;
             renderCanvas();
-            currentSVGString = generateSVGString();
-            
-            btnGenerate.textContent = 'Generate Bitmap';
+
+            btnGenerate.textContent = restoreLabel;
             btnGenerate.disabled = false;
             btnExportPng.disabled = false;
             btnExportSvg.disabled = false;
+            if (isVideo) {
+                btnExportVideo.disabled = !canRecord;
+                if (sourceVideo.paused) togglePlay();
+            }
         }, 50);
     }
 
+    // Hash-based pseudo-random in [0,1). Keyed on grid cell + channel + seed, so
+    // jitter is spatially random but identical every time the same frame is
+    // drawn — that is what stops video dots from crawling frame to frame, and it
+    // also makes the PNG and SVG exports agree.
+    function cellRandom(col, row, channel, seed) {
+        let h = Math.imul(col + 1, 0x27d4eb2d) ^
+                Math.imul(row + 1, 0x165667b1) ^
+                Math.imul(channel + 1, 0x9e3779b1) ^
+                Math.imul(seed + 1, 0x85ebca6b);
+        h ^= h >>> 15; h = Math.imul(h, 0x2545f491);
+        h ^= h >>> 13; h = Math.imul(h, 0x27d4eb2d);
+        h ^= h >>> 16;
+        return (h >>> 0) / 4294967296;
+    }
+
     function getProcessData() {
-        // Draw source to offscreen for sampling
-        offscreenCtx.drawImage(sourceImage, 0, 0);
+        // Draw source (image frame or current video frame) to offscreen for
+        // sampling, scaled to the render size.
+        offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+        offscreenCtx.drawImage(source.el, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
         const imgData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
         const pixels = imgData.data;
 
@@ -657,8 +1124,10 @@
         for (let y = 0; y < height; y += spacing) {
             let rowIdx = y / spacing;
             let xOffset = (isHex && rowIdx % 2 !== 0) ? spacing / 2 : 0;
+            let colIdx = -1;
 
             for (let x = 0 + xOffset; x < width; x += spacing) {
+                colIdx++;
                 // Sample pixel center
                 const sampleX = Math.min(Math.floor(x), width - 1);
                 const sampleY = Math.min(Math.floor(y), height - 1);
@@ -689,7 +1158,7 @@
 
                 // Apply Size Jitter
                 if (sizeJitterStr > 0) {
-                    const jitterMult = 1 + (Math.random() * 2 - 1) * sizeJitterStr; // +/- percentage
+                    const jitterMult = 1 + (cellRandom(colIdx, rowIdx, 0, jitterSeed) * 2 - 1) * sizeJitterStr; // +/- percentage
                     finalRadius *= jitterMult;
                 }
 
@@ -708,8 +1177,8 @@
                 let finalY = y;
                 if (posJitterStr > 0) {
                     const maxOffset = spacing * posJitterStr * 0.5;
-                    finalX += (Math.random() * 2 - 1) * maxOffset;
-                    finalY += (Math.random() * 2 - 1) * maxOffset;
+                    finalX += (cellRandom(colIdx, rowIdx, 1, jitterSeed) * 2 - 1) * maxOffset;
+                    finalY += (cellRandom(colIdx, rowIdx, 2, jitterSeed) * 2 - 1) * maxOffset;
                 }
 
                 // Determine Color
@@ -732,7 +1201,8 @@
 
     function renderCanvas() {
         const data = getProcessData();
-        
+        lastData = data; // exports reuse this so they match the visible frame exactly
+
         mainCtx.fillStyle = data.bgHex;
         mainCtx.fillRect(0, 0, data.width, data.height);
 
@@ -756,7 +1226,7 @@
 
 
     function generateSVGString() {
-        const data = getProcessData();
+        const data = lastData || getProcessData();
         let svgBody = '';
         
         // Add Background
@@ -778,26 +1248,135 @@ ${svgBody}</svg>`;
 
 
     // --- Export Handlers ---
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function exportSuffix() {
+        return source.type === 'video' ? '-frame' : '';
+    }
+
     btnExportPng.addEventListener('click', () => {
         mainCanvas.toBlob(blob => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'wpp-dot-illustration.png';
-            a.click();
-            URL.revokeObjectURL(url);
+            downloadBlob(blob, `wpp-dot-illustration${exportSuffix()}.png`);
         }, 'image/png');
     });
 
     btnExportSvg.addEventListener('click', () => {
-        const blob = new Blob([currentSVGString], {type: 'image/svg+xml'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'wpp-dot-illustration.svg';
-        a.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob([generateSVGString()], {type: 'image/svg+xml'});
+        downloadBlob(blob, `wpp-dot-illustration${exportSuffix()}.svg`);
     });
+
+    // --- Video Recording ---
+    // Records the halftone canvas itself, so what you see in the preview is what
+    // lands in the file. Runs the clip once from the start with looping off.
+    let loopBeforeRecording = true;
+
+    btnExportVideo.addEventListener('click', () => {
+        if (recorder) { finishRecording(); return; }
+        startRecording();
+    });
+
+    function startRecording() {
+        if (!canRecord || source.type !== 'video' || !isSourceLoaded) return;
+        if (!halftoneActive) { generate(); return; }
+
+        const fps = parseInt(controls.previewFps.value);
+        const candidates = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+        const mimeType = candidates.find(t => MediaRecorder.isTypeSupported(t));
+
+        let stream;
+        try {
+            stream = mainCanvas.captureStream(fps);
+            recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        } catch (err) {
+            recorder = null;
+            sourceInfo.textContent = `Recording failed to start: ${err.message}`;
+            return;
+        }
+
+        recordChunks = [];
+        recorder.ondataavailable = (e) => { if (e.data && e.data.size) recordChunks.push(e.data); };
+        recorder.onstop = () => {
+            const blob = new Blob(recordChunks, { type: 'video/webm' });
+            recordChunks = [];
+            recorder = null;
+            sourceVideo.loop = loopBeforeRecording;
+            videoLoop.checked = loopBeforeRecording;
+            btnExportVideo.textContent = 'Record WebM';
+            btnExportVideo.classList.remove('recording');
+            setControlsDisabled(false);
+            if (blob.size) downloadBlob(blob, 'wpp-dot-illustration.webm');
+            describeSource();
+        };
+
+        loopBeforeRecording = videoLoop.checked;
+        sourceVideo.loop = false;
+        videoLoop.checked = false;
+        sourceVideo.pause();
+
+        btnExportVideo.textContent = 'Stop • 0%';
+        btnExportVideo.classList.add('recording');
+        setControlsDisabled(true);
+
+        // Only start capturing once frame zero is actually on the canvas,
+        // otherwise the clip opens on whatever frame was last previewed.
+        const begin = () => {
+            drawFrame();
+            recorder.start();
+            startPreview();
+            sourceVideo.play().catch(() => {});
+        };
+        if (sourceVideo.currentTime === 0) {
+            begin();
+        } else {
+            sourceVideo.addEventListener('seeked', begin, { once: true });
+            sourceVideo.currentTime = 0;
+        }
+    }
+
+    function finishRecording() {
+        if (!recorder) return;
+        if (recorder.state !== 'inactive') recorder.stop();
+        sourceVideo.pause();
+    }
+
+    function abortRecording() {
+        if (!recorder) return;
+        recordChunks = [];
+        const r = recorder;
+        recorder = null;
+        r.onstop = null;
+        if (r.state !== 'inactive') r.stop();
+        btnExportVideo.textContent = 'Record WebM';
+        btnExportVideo.classList.remove('recording');
+        setControlsDisabled(false);
+    }
+
+    function updateRecordProgress() {
+        const duration = getDuration();
+        const pct = duration ? Math.min(100, Math.round((sourceVideo.currentTime / duration) * 100)) : 0;
+        btnExportVideo.textContent = `Stop • ${pct}%`;
+    }
+
+    // Freeze settings while recording so the exported clip stays consistent.
+    function setControlsDisabled(disabled) {
+        btnGenerate.disabled = disabled || !isSourceLoaded;
+        btnReset.disabled = disabled;
+        btnExportPng.disabled = disabled || !halftoneActive;
+        btnExportSvg.disabled = disabled || !halftoneActive;
+        imageUpload.disabled = disabled;
+        controls.maxFrame.disabled = disabled;
+        controls.previewFps.disabled = disabled;
+        timeline.disabled = disabled;
+        btnPlay.disabled = disabled;
+        videoLoop.disabled = disabled;
+    }
 
 
     // --- Reset ---
@@ -818,6 +1397,8 @@ ${svgBody}</svg>`;
         controls.dotColorHex.value = '#000050';
         controls.bgColor.value = '#FFFFFF';
         controls.bgColorHex.value = '#FFFFFF';
+        controls.previewFps.value = '15';
+        controls.maxFrame.value = '720';
 
         // Update UI displays
         for(const key in valDisplays) {
@@ -825,9 +1406,15 @@ ${svgBody}</svg>`;
         }
         toggleThresholdControl();
         toggleColorControl();
-        
-        // If image is loaded, re-generate to show default state
-        if(isImageLoaded && !btnGenerate.disabled) {
+
+        if (!isSourceLoaded) return;
+        applySourceSize();
+
+        if (source.type === 'video') {
+            // Live preview picks the new settings up on the next frame; nudge a
+            // repaint so a paused frame updates too.
+            scheduleFrame();
+        } else if (!btnGenerate.disabled) {
             generate();
         }
     }
@@ -836,13 +1423,14 @@ ${svgBody}</svg>`;
     setupControlListeners();
     toggleThresholdControl();
     toggleColorControl();
+    updatePlayButton();
     // Set initial canvas background
     mainCtx.fillStyle = '#f0f0f4'; // Placeholder color matching the bg
     mainCtx.fillRect(0,0, mainCanvas.width, mainCanvas.height);
     mainCtx.font = "500 18px system-ui";
     mainCtx.fillStyle = "#888";
     mainCtx.textAlign = "center";
-    mainCtx.fillText("Image preview will appear here", mainCanvas.width/2, mainCanvas.height/2);
+    mainCtx.fillText("Image or video preview will appear here", mainCanvas.width/2, mainCanvas.height/2);
 
 </script>
 
