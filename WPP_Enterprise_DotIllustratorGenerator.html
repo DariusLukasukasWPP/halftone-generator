@@ -485,12 +485,24 @@
                 <label for="max-frame">Max Frame Size</label>
                 <select id="max-frame">
                     <option value="480">480 px (fastest)</option>
-                    <option value="720" selected="">720 px</option>
+                    <option value="720">720 px</option>
                     <option value="1080">1080 px</option>
-                    <option value="0">Original resolution</option>
+                    <option value="0" selected="">Original resolution</option>
                 </select>
                 <p class="hint" style="margin-top: 8px;">Longest edge of the rendered frame. Every dot is redrawn each
-                frame, so lower values keep playback smooth on large clips.</p>
+                frame, so lower values keep playback smooth on large clips. Pick <em>Original resolution</em> to match
+                the source exactly.</p>
+            </div>
+            <div class="control-item">
+                <label for="bitrate">Recording Bitrate</label>
+                <select id="bitrate">
+                    <option value="8">Standard (8 Mbps)</option>
+                    <option value="16" selected="">High (16 Mbps)</option>
+                    <option value="32">Very High (32 Mbps)</option>
+                    <option value="50">Maximum (50 Mbps)</option>
+                </select>
+                <p class="hint" style="margin-top: 8px;">Halftone dots are fine, high-frequency detail — a low bitrate
+                smears them together. Only affects the recorded file.</p>
             </div>
         </div>
 
@@ -630,6 +642,7 @@
         bgColorHex: document.getElementById('bg-color-hex'),
         previewFps: document.getElementById('preview-fps'),
         maxFrame: document.getElementById('max-frame'),
+        bitrate: document.getElementById('bitrate'),
     };
 
     const valDisplays = {
@@ -684,6 +697,9 @@
     let isScrubbing = false;
     let recorder = null;
     let recordChunks = [];
+    let recordFormat = null;    // container/codec chosen for the current recording
+    let finalised = true;       // guards the one-shot save-and-unlock step
+    let finaliseTimer = null;
 
     // --- Event Listeners for Controls (Update displays & UI logic) ---
     function setupControlListeners() {
@@ -1318,7 +1334,23 @@ ${svgBody}</svg>`;
         let stream;
         try {
             stream = mainCanvas.captureStream(fps);
-            recorder = new MediaRecorder(stream, { mimeType: fmt.mime });
+            // Carry the source's audio through, when the browser exposes it.
+            try {
+                const capture = sourceVideo.captureStream || sourceVideo.mozCaptureStream;
+                if (capture) {
+                    const audio = capture.call(sourceVideo).getAudioTracks();
+                    if (audio.length) stream = new MediaStream(stream.getVideoTracks().concat(audio));
+                }
+            } catch (audioErr) {
+                // Source has no audio, or the browser will not expose it — video only.
+            }
+            recorder = new MediaRecorder(stream, {
+                mimeType: fmt.mime,
+                // Left unset, browsers pick a bitrate far too low for fine dot
+                // detail at high resolutions.
+                videoBitsPerSecond: parseInt(controls.bitrate.value) * 1000000,
+                audioBitsPerSecond: 192000,
+            });
         } catch (err) {
             recorder = null;
             sourceInfo.textContent = `Recording failed to start: ${err.message}`;
@@ -1326,21 +1358,10 @@ ${svgBody}</svg>`;
         }
 
         recordChunks = [];
+        recordFormat = fmt;
+        finalised = false;
         recorder.ondataavailable = (e) => { if (e.data && e.data.size) recordChunks.push(e.data); };
-        recorder.onstop = () => {
-            // Trust the recorder's negotiated type over what we asked for.
-            const mime = (recorder && recorder.mimeType) || fmt.mime;
-            const blob = new Blob(recordChunks, { type: mime.split(';')[0] });
-            recordChunks = [];
-            recorder = null;
-            sourceVideo.loop = loopBeforeRecording;
-            videoLoop.checked = loopBeforeRecording;
-            btnExportVideo.textContent = recordLabel();
-            btnExportVideo.classList.remove('recording');
-            setControlsDisabled(false);
-            if (blob.size) downloadBlob(blob, `wpp-dot-illustration.${fmt.ext}`);
-            describeSource();
-        };
+        recorder.onstop = () => finaliseRecording();
 
         loopBeforeRecording = videoLoop.checked;
         sourceVideo.loop = false;
@@ -1367,14 +1388,40 @@ ${svgBody}</svg>`;
         }
     }
 
+    // Saves the file and hands the UI back. Idempotent, because it is reached
+    // either from the recorder's stop event or from the fallback below.
+    function finaliseRecording() {
+        if (finalised) return;
+        finalised = true;
+        if (finaliseTimer !== null) { clearTimeout(finaliseTimer); finaliseTimer = null; }
+
+        const fmt = recordFormat || { mime: 'video/webm', ext: 'webm' };
+        const mime = (recorder && recorder.mimeType) || fmt.mime;
+        const blob = new Blob(recordChunks, { type: mime.split(';')[0] });
+        recordChunks = [];
+        recorder = null;
+        sourceVideo.loop = loopBeforeRecording;
+        videoLoop.checked = loopBeforeRecording;
+        btnExportVideo.textContent = recordLabel();
+        btnExportVideo.classList.remove('recording');
+        setControlsDisabled(false);
+        if (blob.size) downloadBlob(blob, `wpp-dot-illustration.${fmt.ext}`);
+        describeSource();
+    }
+
     function finishRecording() {
-        if (!recorder) return;
+        if (!recorder || finalised) return;
         if (recorder.state !== 'inactive') recorder.stop();
         sourceVideo.pause();
+        // A backgrounded tab can move the recorder to "inactive" without ever
+        // dispatching stop, which would otherwise leave the controls locked.
+        if (finaliseTimer === null) finaliseTimer = setTimeout(finaliseRecording, 2000);
     }
 
     function abortRecording() {
         if (!recorder) return;
+        finalised = true;   // discard: no file, no finalise
+        if (finaliseTimer !== null) { clearTimeout(finaliseTimer); finaliseTimer = null; }
         recordChunks = [];
         const r = recorder;
         recorder = null;
@@ -1400,6 +1447,7 @@ ${svgBody}</svg>`;
         imageUpload.disabled = disabled;
         controls.maxFrame.disabled = disabled;
         controls.previewFps.disabled = disabled;
+        controls.bitrate.disabled = disabled;
         timeline.disabled = disabled;
         btnPlay.disabled = disabled;
         videoLoop.disabled = disabled;
@@ -1425,7 +1473,8 @@ ${svgBody}</svg>`;
         controls.bgColor.value = '#FFFFFF';
         controls.bgColorHex.value = '#FFFFFF';
         controls.previewFps.value = '15';
-        controls.maxFrame.value = '720';
+        controls.maxFrame.value = '0';
+        controls.bitrate.value = '16';
 
         // Update UI displays
         for(const key in valDisplays) {
