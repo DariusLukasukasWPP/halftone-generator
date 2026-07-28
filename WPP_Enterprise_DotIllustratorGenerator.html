@@ -1,0 +1,849 @@
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WPP Enterprise Solutions Dot Illustration Generator</title>
+    <style>
+        :root {
+            /* Brand Palette */
+            --color-bg-main: #FAFAF0; /* Light off-white background */
+            --color-text: #000050;    /* Dark blue text */
+            --color-accent: #FF6400;  /* Orange accent */
+            --color-accent-hover: #e65a00;
+            
+            /* UI Palette - Modern & Clean */
+            --color-panel-bg: #ffffff;
+            --color-control-bg: #f8f8fa;
+            --color-border-subtle: #e0e0e8;
+            --color-input-bg: #ffffff;
+            --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
+            --shadow-medium: 0 8px 24px rgba(0,0,0,0.08);
+            --radius-small: 8px;
+            --radius-medium: 16px;
+            --radius-pill: 50px;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: var(--color-panel-bg);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-soft);
+            z-index: 20;
+            position: relative;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--color-text);
+        }
+
+        .brand-accent { color: var(--color-accent); }
+
+        /* --- Main Layout --- */
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            background-color: var(--color-bg-main);
+        }
+
+        /* --- Sidebar Controls --- */
+        #controls-pane {
+            width: 360px;
+            background-color: var(--color-panel-bg);
+            padding: 24px;
+            overflow-y: auto;
+            border-right: 1px solid var(--color-border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            box-shadow: var(--shadow-soft);
+            z-index: 10;
+            /* Smooth scrolling */
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-border-subtle) transparent;
+        }
+
+        /* --- Canvas Preview Area --- */
+        #preview-pane {
+            flex: 1;
+            background-color: #f0f0f4; /* Neutral canvas background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            position: relative;
+            overflow: auto;
+        }
+
+        #main-canvas {
+            background-color: #ffffff;
+            box-shadow: var(--shadow-medium);
+            border-radius: 4px; /* Slight radius on the canvas itself */
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: box-shadow 0.3s ease;
+        }
+
+        /* --- Control Components --- */
+        .control-group {
+            background-color: var(--color-control-bg);
+            padding: 20px;
+            border-radius: var(--radius-medium);
+            border: 1px solid transparent;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .control-group:hover {
+             border-color: var(--color-border-subtle);
+             box-shadow: var(--shadow-soft);
+        }
+
+        .control-group h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: var(--color-accent);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 800;
+        }
+
+        .control-item {
+            margin-bottom: 16px;
+        }
+        .control-item:last-child { margin-bottom: 0; }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .val-display {
+            font-variant-numeric: tabular-nums;
+            color: var(--color-accent);
+            font-weight: 700;
+            background: rgba(255, 100, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: var(--radius-pill);
+            font-size: 0.85rem;
+        }
+
+        /* Modern Form Inputs */
+        select, .hex-input {
+            background-color: var(--color-input-bg);
+            color: var(--color-text);
+            border: 1px solid var(--color-border-subtle);
+            padding: 10px 12px;
+            border-radius: var(--radius-small);
+            width: 100%;
+            font-family: inherit;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            appearance: none; /* Remove default select arrow for custom styling if desired, but keeping simple for now */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23000050' d='M6 8.825L1.175 4 2.238 2.938 6 6.7l3.763-3.762L10.825 4z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        .hex-input {
+             background-image: none; /* No arrow for text input */
+        }
+
+        select:focus, .hex-input:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(255, 100, 0, 0.15);
+        }
+
+        /* Color Picker Wrapper */
+        .color-picker-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        input[type="color"] {
+             -webkit-appearance: none;
+             border: none;
+             height: 42px;
+             width: 42px;
+             padding: 0;
+             cursor: pointer;
+             border-radius: var(--radius-small);
+             overflow: hidden;
+             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+             border: 2px solid var(--color-border-subtle);
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+        }
+
+        /* Modern Range Sliders */
+        input[type=range] {
+            width: 100%;
+            background: transparent;
+            cursor: pointer;
+            /* Appearance tweak for modern browsers */
+            height: 24px; 
+            -webkit-appearance: none;
+            margin: 10px 0;
+        }
+        input[type=range]:focus { outline: none; }
+
+        /* Webkit Slider Track & Thumb */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: var(--color-border-subtle);
+            border-radius: var(--radius-pill);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 18px;
+            width: 18px;
+            border-radius: var(--radius-pill);
+            background: var(--color-accent);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px; /* Centers thumb on track */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.1s, background-color 0.2s;
+        }
+        input[type=range]:focus::-webkit-slider-thumb,
+        input[type=range]:hover::-webkit-slider-thumb {
+            background: var(--color-accent-hover);
+            transform: scale(1.1);
+        }
+
+        /* --- Buttons --- */
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: auto;
+            flex-wrap: wrap;
+            padding-top: 10px;
+        }
+
+        button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: var(--radius-pill); /* Rounded Buttons */
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            min-width: 130px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: inherit;
+        }
+
+        /* Primary Button: Solid Orange */
+        button.primary {
+            background-color: var(--color-accent);
+            color: white;
+            box-shadow: 0 4px 10px rgba(255, 100, 0, 0.25);
+        }
+        button.primary:hover:not(:disabled) {
+             background-color: var(--color-accent-hover);
+             box-shadow: 0 6px 15px rgba(255, 100, 0, 0.35);
+             transform: translateY(-1px);
+        }
+        button.primary:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(255, 100, 0, 0.25);
+        }
+
+        /* Secondary Button: White with Orange outline */
+        button.secondary {
+            background-color: var(--color-panel-bg);
+            color: var(--color-accent);
+            border: 2px solid var(--color-accent);
+        }
+        button.secondary:hover:not(:disabled) {
+            background-color: #fff5f0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transform: translateY(-1px);
+        }
+        button.secondary:active:not(:disabled) {
+             transform: translateY(1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+            background-color: #e0e0e8 !important;
+            color: #999 !important;
+            border-color: transparent !important;
+        }
+
+        /* --- File Upload Area --- */
+        #file-input-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 20px;
+            text-align: center;
+            background-color: var(--color-control-bg);
+            border: 2px dashed var(--color-border-subtle);
+            border-radius: var(--radius-medium);
+            cursor: pointer;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--color-text);
+            transition: all 0.2s;
+            gap: 10px;
+        }
+        #file-input-label::before {
+            /* Simple icon */
+            content: '↑';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            width: 40px;
+            background: rgba(255,100,0,0.1);
+            color: var(--color-accent);
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 800;
+        }
+        #file-input-label:hover {
+             background-color: #fff5f0;
+             border-color: var(--color-accent);
+        }
+        #file-input-label span {
+            font-weight: 400;
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+
+        #image-upload { display: none; }
+
+        /* Hidden elements for processing */
+        #hidden-container { display: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>WPP Enterprise Solutions <span class="brand-accent">Dot Illustration Generator</span></h1>
+</header>
+
+<main>
+    <section id="controls-pane">
+        <label id="file-input-label" for="image-upload">
+            Upload Source Image
+            <span>Click or drag file here</span>
+            <input type="file" id="image-upload" accept="image/*">
+        </label>
+
+        <div class="control-group">
+            <h3>Sizing &amp; Grid</h3>
+            <!-- PRESET: Max Size 6 -->
+            <div class="control-item">
+                <label for="max-size">Max Circle Size (px) <span class="val-display" id="val-max-size">6</span></label>
+                <input type="range" id="max-size" min="1" max="20" value="6" step="0.5">
+            </div>
+            <!-- PRESET: Min Size 1 (Unchanged) -->
+            <div class="control-item">
+                <label for="min-size">Min Circle Size (px) <span class="val-display" id="val-min-size">1</span></label>
+                <input type="range" id="min-size" min="0" max="20" value="1" step="0.5">
+            </div>
+            <!-- PRESET: Grid Spacing 5 -->
+            <div class="control-item">
+                <label for="grid-spacing">Grid Spacing (px) <span class="val-display" id="val-grid-spacing">5</span></label>
+                <input type="range" id="grid-spacing" min="2" max="50" value="5">
+            </div>
+            <!-- PRESET: Hex Grid -->
+            <div class="control-item">
+                 <label for="grid-type">Grid Type</label>
+                 <select id="grid-type">
+                     <option value="square">Square Grid</option>
+                     <option value="hex" selected="">Hex Grid (Offset Rows)</option>
+                 </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Tone &amp; Mapping</h3>
+             <div class="control-item">
+                 <label for="render-mode">Render Mode</label>
+                 <select id="render-mode">
+                     <option value="tone">Tone-based (Continuous)</option>
+                     <option value="threshold">Threshold (Binary)</option>
+                 </select>
+            </div>
+            <!-- PRESET: Contrast 10 -->
+            <div class="control-item">
+                <label for="contrast">Contrast <span class="val-display" id="val-contrast">10</span></label>
+                <input type="range" id="contrast" min="-100" max="100" value="10">
+            </div>
+            <div class="control-item" id="threshold-control" style="display:none; opacity: 0.5;">
+                <label for="threshold">Threshold <span class="val-display" id="val-threshold">128</span></label>
+                <input type="range" id="threshold" min="0" max="255" value="128" disabled="">
+            </div>
+             <div class="control-item">
+                <label for="opacity-var">Opacity Variation (%) <span class="val-display" id="val-opacity-var">0</span></label>
+                <input type="range" id="opacity-var" min="0" max="100" value="0">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Variation &amp; Jitter</h3>
+            <!-- PRESET: Position Jitter 20% -->
+            <div class="control-item">
+                <label for="pos-jitter">Position Jitter (%) <span class="val-display" id="val-pos-jitter">20</span></label>
+                <input type="range" id="pos-jitter" min="0" max="100" value="20">
+            </div>
+            <!-- PRESET: Size Variation 10% -->
+            <div class="control-item">
+                <label for="size-jitter">Size Variation (%) <span class="val-display" id="val-size-jitter">10</span></label>
+                <input type="range" id="size-jitter" min="0" max="100" value="10">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Color &amp; Appearance</h3>
+             <div class="control-item">
+                 <label for="color-mode">Colour Mode</label>
+                 <select id="color-mode">
+                     <option value="single">Single Colour</option>
+                     <option value="original">Use Original Image Colours</option>
+                 </select>
+            </div>
+            <div class="control-item" id="dot-color-control">
+                <label for="dot-color">Dot Colour</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="dot-color" value="#000050">
+                    <input type="text" id="dot-color-hex" value="#000050" class="hex-input">
+                </div>
+            </div>
+            <div class="control-item">
+                <label for="bg-color">Background Colour</label>
+                 <div class="color-picker-wrapper">
+                    <input type="color" id="bg-color" value="#FFFFFF">
+                     <input type="text" id="bg-color-hex" value="#FFFFFF" class="hex-input">
+                 </div>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button id="btn-reset" class="secondary">Reset Settings</button>
+            <button id="btn-generate" class="primary" disabled="">Generate Bitmap</button>
+        </div>
+        <div class="btn-row" style="margin-bottom: 20px;">
+            <button id="btn-export-png" class="secondary" disabled="">Download PNG</button>
+            <button id="btn-export-svg" class="secondary" disabled="">Download SVG</button>
+        </div>
+
+    </section>
+
+    <section id="preview-pane">
+        <canvas id="main-canvas" width="800" height="600"></canvas>
+    </section>
+</main>
+
+<!-- Hidden elements for image processing -->
+<div id="hidden-container">
+    <canvas id="offscreen-canvas"></canvas>
+    <img id="source-image">
+</div>
+
+<script>
+    // --- DOM Elements ---
+    const controls = {
+        maxSize: document.getElementById('max-size'),
+        minSize: document.getElementById('min-size'),
+        gridSpacing: document.getElementById('grid-spacing'),
+        gridType: document.getElementById('grid-type'),
+        renderMode: document.getElementById('render-mode'),
+        contrast: document.getElementById('contrast'),
+        threshold: document.getElementById('threshold'),
+        opacityVar: document.getElementById('opacity-var'),
+        posJitter: document.getElementById('pos-jitter'),
+        sizeJitter: document.getElementById('size-jitter'),
+        colorMode: document.getElementById('color-mode'),
+        dotColor: document.getElementById('dot-color'),
+        dotColorHex: document.getElementById('dot-color-hex'),
+        bgColor: document.getElementById('bg-color'),
+        bgColorHex: document.getElementById('bg-color-hex'),
+    };
+
+    const valDisplays = {
+        maxSize: document.getElementById('val-max-size'),
+        minSize: document.getElementById('val-min-size'),
+        gridSpacing: document.getElementById('val-grid-spacing'),
+        contrast: document.getElementById('val-contrast'),
+        threshold: document.getElementById('val-threshold'),
+        opacityVar: document.getElementById('val-opacity-var'),
+        posJitter: document.getElementById('val-pos-jitter'),
+        sizeJitter: document.getElementById('val-size-jitter'),
+    };
+
+    const imageUpload = document.getElementById('image-upload');
+    const mainCanvas = document.getElementById('main-canvas');
+    const mainCtx = mainCanvas.getContext('2d');
+    const offscreenCanvas = document.getElementById('offscreen-canvas');
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+    const sourceImage = document.getElementById('source-image');
+
+    const btnGenerate = document.getElementById('btn-generate');
+    const btnExportPng = document.getElementById('btn-export-png');
+    const btnExportSvg = document.getElementById('btn-export-svg');
+    const btnReset = document.getElementById('btn-reset');
+
+    // --- State ---
+    let isImageLoaded = false;
+    let currentSVGString = '';
+
+    // --- Event Listeners for Controls (Update displays & UI logic) ---
+    function setupControlListeners() {
+        for (const key in controls) {
+            const input = controls[key];
+            if (input.type === 'range') {
+                input.addEventListener('input', () => {
+                    valDisplays[key].textContent = input.value;
+                    validateMinMax();
+                });
+            }
+        }
+
+        controls.renderMode.addEventListener('change', toggleThresholdControl);
+        controls.colorMode.addEventListener('change', toggleColorControl);
+
+        // Sync Hex/Color Pickers
+        controls.dotColor.addEventListener('input', (e) => controls.dotColorHex.value = e.target.value.toUpperCase());
+        controls.dotColorHex.addEventListener('change', (e) => controls.dotColor.value = ensureHex(e.target.value));
+        controls.bgColor.addEventListener('input', (e) => controls.bgColorHex.value = e.target.value.toUpperCase());
+        controls.bgColorHex.addEventListener('change', (e) => controls.bgColor.value = ensureHex(e.target.value));
+
+        btnReset.addEventListener('click', resetControls);
+    }
+
+    function ensureHex(val) {
+        // Simple validator, falls back to black if invalid
+        return /^#[0-9A-F]{6}$/i.test(val) ? val : '#000000';
+    }
+
+    function validateMinMax() {
+        let min = parseFloat(controls.minSize.value);
+        let max = parseFloat(controls.maxSize.value);
+        if (min > max) {
+            controls.minSize.value = max;
+            valDisplays.minSize.textContent = max;
+        }
+    }
+
+    function toggleThresholdControl() {
+        const isThreshold = controls.renderMode.value === 'threshold';
+        const container = document.getElementById('threshold-control');
+        container.style.display = isThreshold ? 'block' : 'none';
+        controls.threshold.disabled = !isThreshold;
+        container.style.opacity = isThreshold ? '1' : '0.5';
+    }
+
+    function toggleColorControl() {
+        const isSingle = controls.colorMode.value === 'single';
+        document.getElementById('dot-color-control').style.display = isSingle ? 'block' : 'none';
+    }
+
+    // --- Image Loading ---
+    imageUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            sourceImage.onload = function() {
+                isImageLoaded = true;
+                btnGenerate.disabled = false;
+                // Set canvas dimensions to match image
+                mainCanvas.width = sourceImage.width;
+                mainCanvas.height = sourceImage.height;
+                offscreenCanvas.width = sourceImage.width;
+                offscreenCanvas.height = sourceImage.height;
+                // Draw initial preview (plain image)
+                mainCtx.drawImage(sourceImage, 0, 0);
+            };
+            sourceImage.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+
+    // --- Generation Logic (The Core) ---
+    btnGenerate.addEventListener('click', generate);
+
+    function generate() {
+        if (!isImageLoaded) return;
+
+        btnGenerate.textContent = 'Generating...';
+        btnGenerate.disabled = true;
+
+        // Small timeout to allow UI to update
+        setTimeout(() => {
+            renderCanvas();
+            currentSVGString = generateSVGString();
+            
+            btnGenerate.textContent = 'Generate Bitmap';
+            btnGenerate.disabled = false;
+            btnExportPng.disabled = false;
+            btnExportSvg.disabled = false;
+        }, 50);
+    }
+
+    function getProcessData() {
+        // Draw source to offscreen for sampling
+        offscreenCtx.drawImage(sourceImage, 0, 0);
+        const imgData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+        const pixels = imgData.data;
+
+        const width = offscreenCanvas.width;
+        const height = offscreenCanvas.height;
+
+        // Read settings
+        const spacing = parseInt(controls.gridSpacing.value);
+        const minR = parseFloat(controls.minSize.value) / 2;
+        const maxR = parseFloat(controls.maxSize.value) / 2;
+        const contrastVal = parseInt(controls.contrast.value);
+        const thresholdVal = parseInt(controls.threshold.value);
+        const opacityVarStr = parseInt(controls.opacityVar.value) / 100;
+        const posJitterStr = parseInt(controls.posJitter.value) / 100;
+        const sizeJitterStr = parseInt(controls.sizeJitter.value) / 100;
+        const isHex = controls.gridType.value === 'hex';
+        const isThresholdMode = controls.renderMode.value === 'threshold';
+        const isOriginalColor = controls.colorMode.value === 'original';
+        const dotHex = controls.dotColor.value;
+        const bgHex = controls.bgColor.value;
+
+        // Pre-calculate contrast factor
+        const contrastFactor = (259 * (contrastVal + 255)) / (255 * (259 - contrastVal));
+
+        let dots = [];
+
+        for (let y = 0; y < height; y += spacing) {
+            let rowIdx = y / spacing;
+            let xOffset = (isHex && rowIdx % 2 !== 0) ? spacing / 2 : 0;
+
+            for (let x = 0 + xOffset; x < width; x += spacing) {
+                // Sample pixel center
+                const sampleX = Math.min(Math.floor(x), width - 1);
+                const sampleY = Math.min(Math.floor(y), height - 1);
+                const i = (sampleY * width + sampleX) * 4;
+
+                const r = pixels[i];
+                const g = pixels[i+1];
+                const b = pixels[i+2];
+                // const a = pixels[i+3]; // Ignore source alpha for now
+
+                // Perceptual brightness (0-255)
+                let brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                // Apply Contrast
+                brightness = contrastFactor * (brightness - 128) + 128;
+                brightness = Math.max(0, Math.min(255, brightness)); // Clamp 0-255
+
+                const normBright = brightness / 255; // 0.0 - 1.0 (0=dark, 1=light)
+
+                // Calculate Size
+                let finalRadius = 0;
+                if (isThresholdMode) {
+                    finalRadius = (brightness < thresholdVal) ? maxR : minR;
+                } else {
+                    // Tone mode: Darker = bigger. Inverse mapping.
+                    finalRadius = minR + (1.0 - normBright) * (maxR - minR);
+                }
+
+                // Apply Size Jitter
+                if (sizeJitterStr > 0) {
+                    const jitterMult = 1 + (Math.random() * 2 - 1) * sizeJitterStr; // +/- percentage
+                    finalRadius *= jitterMult;
+                }
+
+                // Don't render tiny dots
+                if (finalRadius < 0.1) continue;
+
+                // Calculate Opacity
+                let finalOpacity = 1.0;
+                if (opacityVarStr > 0) {
+                     // Darker = more opaque, Lighter = more transparent
+                    finalOpacity = 1.0 - (normBright * opacityVarStr);
+                }
+
+                // Apply Position Jitter
+                let finalX = x;
+                let finalY = y;
+                if (posJitterStr > 0) {
+                    const maxOffset = spacing * posJitterStr * 0.5;
+                    finalX += (Math.random() * 2 - 1) * maxOffset;
+                    finalY += (Math.random() * 2 - 1) * maxOffset;
+                }
+
+                // Determine Color
+                let finalColorStr = dotHex;
+                if (isOriginalColor) {
+                    finalColorStr = `rgb(${r},${g},${b})`;
+                }
+
+                dots.push({
+                    x: finalX,
+                    y: finalY,
+                    r: Math.abs(finalRadius), // Ensure positive radius
+                    color: finalColorStr,
+                    opacity: finalOpacity
+                });
+            }
+        }
+        return { dots, width, height, bgHex };
+    }
+
+    function renderCanvas() {
+        const data = getProcessData();
+        
+        mainCtx.fillStyle = data.bgHex;
+        mainCtx.fillRect(0, 0, data.width, data.height);
+
+        data.dots.forEach(dot => {
+            mainCtx.beginPath();
+            mainCtx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
+            
+            // Handle opacity via globalAlpha or RGBA string conversion if needed.
+            // Simple way for single color mode:
+            if (dot.opacity < 1.0) {
+                mainCtx.globalAlpha = dot.opacity;
+                mainCtx.fillStyle = dot.color;
+                mainCtx.fill();
+                mainCtx.globalAlpha = 1.0; // Reset
+            } else {
+                mainCtx.fillStyle = dot.color;
+                mainCtx.fill();
+            }
+        });
+    }
+
+
+    function generateSVGString() {
+        const data = getProcessData();
+        let svgBody = '';
+        
+        // Add Background
+        svgBody += `<rect width="100%" height="100%" fill="${data.bgHex}"/>\n`;
+
+        const round = (num) => Math.round(num * 100) / 100;
+
+        data.dots.forEach(dot => {
+            // Convert RGB(a) color to hex if necessary for cleaner SVG, or keep rgb string
+            let colorAttr = `fill="${dot.color}"`;
+            let opacityAttr = dot.opacity < 1.0 ? ` opacity="${round(dot.opacity)}"` : '';
+
+            svgBody += `<circle cx="${round(dot.x)}" cy="${round(dot.y)}" r="${round(dot.r)}" ${colorAttr}${opacityAttr}/>\n`;
+        });
+
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${data.width}" height="${data.height}" viewBox="0 0 ${data.width} ${data.height}">
+${svgBody}</svg>`;
+    }
+
+
+    // --- Export Handlers ---
+    btnExportPng.addEventListener('click', () => {
+        mainCanvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'wpp-dot-illustration.png';
+            a.click();
+            URL.revokeObjectURL(url);
+        }, 'image/png');
+    });
+
+    btnExportSvg.addEventListener('click', () => {
+        const blob = new Blob([currentSVGString], {type: 'image/svg+xml'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'wpp-dot-illustration.svg';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+
+    // --- Reset ---
+    function resetControls() {
+        // UPDATED PRESETS
+        controls.maxSize.value = 6;
+        controls.minSize.value = 1;
+        controls.gridSpacing.value = 5;
+        controls.gridType.value = 'hex';
+        controls.renderMode.value = 'tone';
+        controls.contrast.value = 10;
+        controls.threshold.value = 128;
+        controls.opacityVar.value = 0;
+        controls.posJitter.value = 20;
+        controls.sizeJitter.value = 10;
+        controls.colorMode.value = 'single';
+        controls.dotColor.value = '#000050';
+        controls.dotColorHex.value = '#000050';
+        controls.bgColor.value = '#FFFFFF';
+        controls.bgColorHex.value = '#FFFFFF';
+
+        // Update UI displays
+        for(const key in valDisplays) {
+            valDisplays[key].textContent = controls[key].value;
+        }
+        toggleThresholdControl();
+        toggleColorControl();
+        
+        // If image is loaded, re-generate to show default state
+        if(isImageLoaded && !btnGenerate.disabled) {
+            generate();
+        }
+    }
+
+    // --- Init ---
+    setupControlListeners();
+    toggleThresholdControl();
+    toggleColorControl();
+    // Set initial canvas background
+    mainCtx.fillStyle = '#f0f0f4'; // Placeholder color matching the bg
+    mainCtx.fillRect(0,0, mainCanvas.width, mainCanvas.height);
+    mainCtx.font = "500 18px system-ui";
+    mainCtx.fillStyle = "#888";
+    mainCtx.textAlign = "center";
+    mainCtx.fillText("Image preview will appear here", mainCanvas.width/2, mainCanvas.height/2);
+
+</script>
+
+</body></html>
