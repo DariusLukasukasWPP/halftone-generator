@@ -666,12 +666,12 @@
             <div class="control-item">
                 <label for="dot-animation">Dot Animation</label>
                 <select id="dot-animation">
-                    <option value="static" selected="">Static (locked pattern)</option>
-                    <option value="animated">Animated (shimmering)</option>
+                    <option value="animated" selected="">Animated (shimmering)</option>
+                    <option value="static">Static (locked pattern)</option>
                 </select>
-                <p class="hint" style="margin-top: 8px;">Video only. <em>Static</em> keeps each dot in place so only
-                tone changes as the clip plays. <em>Animated</em> re-randomises the jitter every frame for a
-                shimmering, boiling texture.</p>
+                <p class="hint" style="margin-top: 8px;">Video only. <em>Animated</em> re-randomises the jitter every
+                frame for a shimmering, boiling texture. <em>Static</em> keeps each dot in place so only tone changes
+                as the clip plays.</p>
             </div>
         </div>
 
@@ -2103,7 +2103,7 @@ ${svgBody}</svg>`;
 
         // Fields not covered by a preset.
         controls.previewFps.value = '30';
-        controls.dotAnimation.value = 'static';
+        controls.dotAnimation.value = 'animated';
         controls.exportFps.value = '30';
         controls.maxFrame.value = '0';
         controls.aspectRatio.value = 'original';
