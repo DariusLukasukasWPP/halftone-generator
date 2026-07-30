@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -340,9 +341,14 @@
             font-size: 24px;
             font-weight: 800;
         }
-        #file-input-label:hover {
+        #file-input-label:hover,
+        #file-input-label.drag-over {
              background-color: #fff5f0;
              border-color: var(--color-accent);
+        }
+        #file-input-label.drag-over {
+             border-style: solid;
+             box-shadow: 0 0 0 3px rgba(255, 100, 0, 0.15);
         }
         #file-input-label span {
             font-weight: 400;
@@ -359,11 +365,65 @@
             margin: 0;
         }
 
+        /* The video export controls stack: the export button spans the full
+           sidebar width, with Cancel appearing beneath it while a run is in
+           progress. */
+        #video-export-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        #video-export-row button {
+            flex: 0 0 auto;
+            width: 100%;
+        }
+
         #source-info {
             margin-top: -4px;
             font-weight: 600;
-            opacity: 0.75;
+            opacity: 1;
+            color: rgba(0, 0, 80, 0.65);
             overflow-wrap: break-word;
+        }
+
+        .source-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .source-badge {
+            flex: 0 0 auto;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: var(--color-accent);
+            background: rgba(255, 100, 0, 0.1);
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+        }
+
+        .source-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--color-text);
+        }
+
+        .source-dims {
+            display: block;
+            margin-top: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+            color: rgba(0, 0, 80, 0.55);
+        }
+
+        .source-dims .dims-arrow {
+            opacity: 0.6;
+            margin: 0 2px;
         }
 
         /* --- Video Controls --- */
@@ -451,12 +511,23 @@
 
 <main>
     <section id="controls-pane">
+        <div class="control-group">
+            <h3>Preset</h3>
+            <div class="control-item">
+                <label for="preset-select">Style Preset</label>
+                <select id="preset-select">
+                    <option value="default" selected="">Default</option>
+                    <option value="highContrastThreshold">High Contrast Threshold</option>
+                </select>
+            </div>
+        </div>
+
         <label id="file-input-label" for="image-upload">
             Upload Source Image or Video
             <span>Click or drag file here</span>
             <input type="file" id="image-upload" accept="image/*,video/*">
         </label>
-        <p class="hint" id="source-info">No source loaded.</p>
+        <div class="hint" id="source-info">No source loaded.</div>
 
         <div class="control-group" id="video-group">
             <h3>Video Playback</h3>
@@ -480,6 +551,22 @@
                     <option value="24">24 fps</option>
                     <option value="30">30 fps</option>
                 </select>
+                <p class="hint" style="margin-top: 8px;">On-screen playback smoothness only — it does not affect the
+                exported file.</p>
+            </div>
+            <div class="control-item">
+                <label for="export-fps">Export Frame Rate</label>
+                <select id="export-fps">
+                    <option value="12">12 fps</option>
+                    <option value="15">15 fps</option>
+                    <option value="24">24 fps (film)</option>
+                    <option value="25">25 fps (PAL)</option>
+                    <option value="30" selected="">30 fps</option>
+                    <option value="50">50 fps</option>
+                    <option value="60">60 fps</option>
+                </select>
+                <p class="hint" style="margin-top: 8px;" id="export-fps-hint">Frame rate of the downloaded video —
+                exporting at 30 fps. Set this to your source’s rate to avoid dropped or duplicated frames.</p>
             </div>
             <div class="control-item">
                 <label for="max-frame">Max Frame Size</label>
@@ -494,7 +581,7 @@
                 the source exactly.</p>
             </div>
             <div class="control-item">
-                <label for="bitrate">Recording Bitrate</label>
+                <label for="bitrate">Export Bitrate</label>
                 <select id="bitrate">
                     <option value="8">Standard (8 Mbps)</option>
                     <option value="16" selected="">High (16 Mbps)</option>
@@ -502,7 +589,7 @@
                     <option value="50">Maximum (50 Mbps)</option>
                 </select>
                 <p class="hint" style="margin-top: 8px;">Halftone dots are fine, high-frequency detail — a low bitrate
-                smears them together. Only affects the recorded file.</p>
+                smears them together. Only affects the exported file.</p>
             </div>
         </div>
 
@@ -542,6 +629,13 @@
                      <option value="threshold">Threshold (Binary)</option>
                  </select>
             </div>
+            <div class="control-item">
+                 <label for="invert-tone">Invert Brightness</label>
+                 <select id="invert-tone">
+                     <option value="off" selected="">Off</option>
+                     <option value="on">On (dark backgrounds)</option>
+                 </select>
+            </div>
             <!-- PRESET: Contrast 10 -->
             <div class="control-item">
                 <label for="contrast">Contrast <span class="val-display" id="val-contrast">10</span></label>
@@ -577,7 +671,7 @@
                  <label for="color-mode">Colour Mode</label>
                  <select id="color-mode">
                      <option value="single">Single Colour</option>
-                     <option value="original">Use Original Image Colours</option>
+                     <option value="original">Use Original Source Colours</option>
                  </select>
             </div>
             <div class="control-item" id="dot-color-control">
@@ -596,6 +690,28 @@
             </div>
         </div>
 
+        <div class="control-group">
+            <h3>Output</h3>
+            <div class="control-item">
+                <label for="aspect-ratio">Aspect Ratio</label>
+                <select id="aspect-ratio">
+                    <option value="original" selected="">Original</option>
+                    <option value="16:9">16:9 (Widescreen)</option>
+                    <option value="1:1">1:1 (Square)</option>
+                    <option value="9:16">9:16 (Vertical)</option>
+                </select>
+            </div>
+            <div class="control-item">
+                <label for="resolution-tier">Output Resolution</label>
+                <select id="resolution-tier">
+                    <option value="native" selected="">Native (no scaling)</option>
+                    <option value="1k">HD (1080p)</option>
+                    <option value="2k">QHD (1440p)</option>
+                    <option value="4k">4K UHD (2160p)</option>
+                </select>
+            </div>
+        </div>
+
         <div class="btn-row">
             <button id="btn-reset" class="secondary">Reset Settings</button>
             <button id="btn-generate" class="primary" disabled="">Generate Bitmap</button>
@@ -605,7 +721,8 @@
             <button id="btn-export-svg" class="secondary" disabled="">Download SVG</button>
         </div>
         <div class="btn-row" id="video-export-row" style="display:none; margin-bottom: 20px;">
-            <button id="btn-export-video" class="secondary" disabled="">Record Video</button>
+            <button id="btn-export-video" class="secondary" disabled="">Download Video</button>
+            <button id="btn-cancel-export" class="secondary" style="display:none;">Cancel</button>
         </div>
 
     </section>
@@ -622,6 +739,18 @@
     <video id="source-video" muted="" playsinline="" preload="auto"></video>
 </div>
 
+<!-- Vendored WebCodecs container muxers, used for offline (non-real-time) video
+     export. Both are MIT-licensed and bundled inline so the app stays a single
+     file with no build step or external dependency. -->
+<script>
+/* mp4-muxer v5.2.2 — MIT License — https://github.com/Vanilagy/mp4-muxer (c) Vanilagy — vendored inline, no build step */
+"use strict";var Mp4Muxer=(()=>{var e=Object.defineProperty,t=Object.getOwnPropertyDescriptor,i=Object.getOwnPropertyNames,s=Object.prototype.hasOwnProperty,a=(e,t,i)=>{if(!t.has(e))throw TypeError("Cannot "+i)},r=(e,t,i)=>(a(e,t,"read from private field"),i?i.call(e):t.get(e)),n=(e,t,i)=>{if(t.has(e))throw TypeError("Cannot add the same private member more than once");t instanceof WeakSet?t.add(e):t.set(e,i)},o=(e,t,i,s)=>(a(e,t,"write to private field"),s?s.call(e,i):t.set(e,i),i),h=(e,t,i)=>(a(e,t,"access private method"),i),l={};((t,i)=>{for(var s in i)e(t,s,{get:i[s],enumerable:!0})})(l,{ArrayBufferTarget:()=>Me,FileSystemWritableFileStreamTarget:()=>Oe,Muxer:()=>Rt,StreamTarget:()=>We});var d,f,u,m,p,c,w,g,b=new Uint8Array(8),y=new DataView(b.buffer),k=e=>[(e%256+256)%256],T=e=>(y.setUint16(0,e,!1),[b[0],b[1]]),C=e=>(y.setUint32(0,e,!1),[b[1],b[2],b[3]]),v=e=>(y.setUint32(0,e,!1),[b[0],b[1],b[2],b[3]]),S=e=>(y.setUint32(0,Math.floor(e/2**32),!1),y.setUint32(4,e,!1),[b[0],b[1],b[2],b[3],b[4],b[5],b[6],b[7]]),x=e=>(y.setInt16(0,256*e,!1),[b[0],b[1]]),z=e=>(y.setInt32(0,65536*e,!1),[b[0],b[1],b[2],b[3]]),E=e=>(y.setInt32(0,2**30*e,!1),[b[0],b[1],b[2],b[3]]),A=(e,t=!1)=>{let i=Array(e.length).fill(null).map(((t,i)=>e.charCodeAt(i)));return t&&i.push(0),i},M=e=>e&&e[e.length-1],W=e=>{let t;for(let i of e)(!t||i.presentationTimestamp>t.presentationTimestamp)&&(t=i);return t},O=(e,t,i=!0)=>{let s=e*t;return i?Math.round(s):s},B=e=>{let t=e*(Math.PI/180),i=Math.cos(t),s=Math.sin(t);return[i,s,0,-s,i,0,0,0,1]},U=B(0),D=e=>[z(e[0]),z(e[1]),E(e[2]),z(e[3]),z(e[4]),E(e[5]),z(e[6]),z(e[7]),E(e[8])],j=e=>e?"object"!=typeof e?e:Array.isArray(e)?e.map(j):Object.fromEntries(Object.entries(e).map((([e,t])=>[e,j(t)]))):e,R=e=>e>=0&&e<2**32,I=(e,t,i)=>({type:e,contents:t&&new Uint8Array(t.flat(10)),children:i}),N=(e,t,i,s,a)=>I(e,[k(t),C(i),s??[]],a),V=e=>({type:"mdat",largeSize:e}),F=(e,t,i=!1)=>I("moov",null,[L(t,e),...e.map((e=>$(e,t))),i?me(e):null]),L=(e,t)=>{let i=O(Math.max(0,...t.filter((e=>e.samples.length>0)).map((e=>{const t=W(e.samples);return t.presentationTimestamp+t.duration}))),Bt),s=Math.max(...t.map((e=>e.id)))+1,a=!R(e)||!R(i),r=a?S:v;return N("mvhd",+a,0,[r(e),r(e),v(Bt),r(i),z(1),x(1),Array(10).fill(0),D(U),Array(24).fill(0),v(s)])},$=(e,t)=>I("trak",null,[P(e,t),H(e,t)]),P=(e,t)=>{let i,s=W(e.samples),a=O(s?s.presentationTimestamp+s.duration:0,Bt),r=!R(t)||!R(a),n=r?S:v;return i="video"===e.info.type?"number"==typeof e.info.rotation?B(e.info.rotation):e.info.rotation:U,N("tkhd",+r,3,[n(t),n(t),v(e.id),v(0),n(a),Array(8).fill(0),T(0),T(0),x("audio"===e.info.type?1:0),T(0),D(i),z("video"===e.info.type?e.info.width:0),z("video"===e.info.type?e.info.height:0)])},H=(e,t)=>I("mdia",null,[_(e,t),q("video"===e.info.type?"vide":"soun"),G(e)]),_=(e,t)=>{let i=W(e.samples),s=O(i?i.presentationTimestamp+i.duration:0,e.timescale),a=!R(t)||!R(s),r=a?S:v;return N("mdhd",+a,0,[r(t),r(t),v(e.timescale),r(s),T(21956),T(0)])},q=e=>N("hdlr",0,0,[A("mhlr"),A(e),v(0),v(0),v(0),A("mp4-muxer-hdlr",!0)]),G=e=>I("minf",null,["video"===e.info.type?J():K(),Q(),Z(e)]),J=()=>N("vmhd",0,1,[T(0),T(0),T(0),T(0)]),K=()=>N("smhd",0,0,[T(0),T(0)]),Q=()=>I("dinf",null,[X()]),X=()=>N("dref",0,0,[v(1)],[Y()]),Y=()=>N("url ",0,1),Z=e=>{const t=e.compositionTimeOffsetTable.length>1||e.compositionTimeOffsetTable.some((e=>0!==e.sampleCompositionTimeOffset));return I("stbl",null,[ee(e),oe(e),he(e),le(e),de(e),fe(e),t?ue(e):null])},ee=e=>N("stsd",0,0,[v(1)],["video"===e.info.type?te(Se[e.info.codec],e):ne(ze[e.info.codec],e)]),te=(e,t)=>{return I(e,[Array(6).fill(0),T(1),T(0),T(0),Array(12).fill(0),T(t.info.width),T(t.info.height),v(4718592),v(4718592),v(0),T(1),Array(32).fill(0),T(24),(i=65535,y.setInt16(0,i,!1),[b[0],b[1]])],[xe[t.info.codec](t),t.info.decoderConfig.colorSpace?re(t):null]);var i},ie={bt709:1,bt470bg:5,smpte170m:6},se={bt709:1,smpte170m:6,"iec61966-2-1":13},ae={rgb:0,bt709:1,bt470bg:5,smpte170m:6},re=e=>I("colr",[A("nclx"),T(ie[e.info.decoderConfig.colorSpace.primaries]),T(se[e.info.decoderConfig.colorSpace.transfer]),T(ae[e.info.decoderConfig.colorSpace.matrix]),k((e.info.decoderConfig.colorSpace.fullRange?1:0)<<7)]),ne=(e,t)=>I(e,[Array(6).fill(0),T(1),T(0),T(0),v(0),T(t.info.numberOfChannels),T(16),T(0),T(0),z(t.info.sampleRate)],[Ee[t.info.codec](t)]),oe=e=>N("stts",0,0,[v(e.timeToSampleTable.length),e.timeToSampleTable.map((e=>[v(e.sampleCount),v(e.sampleDelta)]))]),he=e=>{if(e.samples.every((e=>"key"===e.type)))return null;let t=[...e.samples.entries()].filter((([,e])=>"key"===e.type));return N("stss",0,0,[v(t.length),t.map((([e])=>v(e+1)))])},le=e=>N("stsc",0,0,[v(e.compactlyCodedChunkTable.length),e.compactlyCodedChunkTable.map((e=>[v(e.firstChunk),v(e.samplesPerChunk),v(1)]))]),de=e=>N("stsz",0,0,[v(0),v(e.samples.length),e.samples.map((e=>v(e.size)))]),fe=e=>e.finalizedChunks.length>0&&M(e.finalizedChunks).offset>=2**32?N("co64",0,0,[v(e.finalizedChunks.length),e.finalizedChunks.map((e=>S(e.offset)))]):N("stco",0,0,[v(e.finalizedChunks.length),e.finalizedChunks.map((e=>v(e.offset)))]),ue=e=>N("ctts",0,0,[v(e.compositionTimeOffsetTable.length),e.compositionTimeOffsetTable.map((e=>[v(e.sampleCount),v(e.sampleCompositionTimeOffset)]))]),me=e=>I("mvex",null,e.map(pe)),pe=e=>N("trex",0,0,[v(e.id),v(1),v(0),v(0),v(0)]),ce=(e,t)=>I("moof",null,[we(e),...t.map(be)]),we=e=>N("mfhd",0,0,[v(e)]),ge=e=>{let t=0,i=0,s="delta"===e.type;return i|=+s,t|=s?1:2,t<<24|i<<16},be=e=>I("traf",null,[ye(e),ke(e),Te(e)]),ye=e=>{let t=0;t|=8,t|=16,t|=32,t|=131072;let i=e.currentChunk.samples[1]??e.currentChunk.samples[0],s={duration:i.timescaleUnitsToNextSample,size:i.size,flags:ge(i)};return N("tfhd",0,131128,[v(e.id),v(s.duration),v(s.size),v(s.flags)])},ke=e=>N("tfdt",1,0,[S(O(e.currentChunk.startTimestamp,e.timescale))]),Te=e=>{let t=e.currentChunk.samples.map((e=>e.timescaleUnitsToNextSample)),i=e.currentChunk.samples.map((e=>e.size)),s=e.currentChunk.samples.map(ge),a=e.currentChunk.samples.map((t=>O(t.presentationTimestamp-t.decodeTimestamp,e.timescale))),r=new Set(t),n=new Set(i),o=new Set(s),h=new Set(a),l=2===o.size&&s[0]!==s[1],d=r.size>1,f=n.size>1,u=!l&&o.size>1,m=h.size>1||[...h].some((e=>0!==e)),p=0;return p|=1,p|=4*+l,p|=256*+d,p|=512*+f,p|=1024*+u,p|=2048*+m,N("trun",1,p,[v(e.currentChunk.samples.length),v(e.currentChunk.offset-e.currentChunk.moofOffset||0),l?v(s[0]):[],e.currentChunk.samples.map(((e,r)=>{return[d?v(t[r]):[],f?v(i[r]):[],u?v(s[r]):[],m?(n=a[r],y.setInt32(0,n,!1),[b[0],b[1],b[2],b[3]]):[]];var n}))])},Ce=(e,t)=>N("tfra",1,0,[v(e.id),v(63),v(e.finalizedChunks.length),e.finalizedChunks.map((i=>[S(O(i.startTimestamp,e.timescale)),S(i.moofOffset),v(t+1),v(1),v(1)]))]),ve=()=>N("mfro",0,0,[v(0)]),Se={avc:"avc1",hevc:"hvc1",vp9:"vp09",av1:"av01"},xe={avc:e=>e.info.decoderConfig&&I("avcC",[...new Uint8Array(e.info.decoderConfig.description)]),hevc:e=>e.info.decoderConfig&&I("hvcC",[...new Uint8Array(e.info.decoderConfig.description)]),vp9:e=>{if(!e.info.decoderConfig)return null;let t=e.info.decoderConfig;if(!t.colorSpace)throw new Error("'colorSpace' is required in the decoder config for VP9.");let i=t.codec.split("."),s=Number(i[1]),a=Number(i[2]),r=0+(Number(i[3])<<4)+Number(t.colorSpace.fullRange);return N("vpcC",1,0,[k(s),k(a),k(r),k(2),k(2),k(2),T(0)])},av1:()=>I("av1C",[129,0,0,0])},ze={aac:"mp4a",opus:"Opus"},Ee={aac:e=>{let t=new Uint8Array(e.info.decoderConfig.description);return N("esds",0,0,[v(58753152),k(32+t.byteLength),T(1),k(0),v(75530368),k(18+t.byteLength),k(64),k(21),C(0),v(130071),v(130071),v(92307584),k(t.byteLength),...t,v(109084800),k(1),k(2)])},opus:e=>{let t=3840,i=0;const s=e.info.decoderConfig?.description;if(s){if(s.byteLength<18)throw new TypeError("Invalid decoder description provided for Opus; must be at least 18 bytes long.");const e=ArrayBuffer.isView(s)?new DataView(s.buffer,s.byteOffset,s.byteLength):new DataView(s);t=e.getUint16(10,!0),i=e.getInt16(14,!0)}return I("dOps",[k(0),k(e.info.numberOfChannels),T(t),v(e.info.sampleRate),x(i),k(0)])}},Ae=(Symbol("isTarget"),class{}),Me=class extends Ae{constructor(){super(...arguments),this.buffer=null}},We=class extends Ae{constructor(e){if(super(),this.options=e,"object"!=typeof e)throw new TypeError("StreamTarget requires an options object to be passed to its constructor.");if(e.onData){if("function"!=typeof e.onData)throw new TypeError("options.onData, when provided, must be a function.");if(e.onData.length<2)throw new TypeError("options.onData, when provided, must be a function that takes in at least two arguments (data and position). Ignoring the position argument, which specifies the byte offset at which the data is to be written, can lead to broken outputs.")}if(void 0!==e.chunked&&"boolean"!=typeof e.chunked)throw new TypeError("options.chunked, when provided, must be a boolean.");if(void 0!==e.chunkSize&&(!Number.isInteger(e.chunkSize)||e.chunkSize<1024))throw new TypeError("options.chunkSize, when provided, must be an integer and not smaller than 1024.")}},Oe=class extends Ae{constructor(e,t){if(super(),this.stream=e,this.options=t,!(e instanceof FileSystemWritableFileStream))throw new TypeError("FileSystemWritableFileStreamTarget requires a FileSystemWritableFileStream instance.");if(void 0!==t&&"object"!=typeof t)throw new TypeError("FileSystemWritableFileStreamTarget's options, when provided, must be an object.");if(t&&void 0!==t.chunkSize&&(!Number.isInteger(t.chunkSize)||t.chunkSize<=0))throw new TypeError("options.chunkSize, when provided, must be a positive integer")}},Be=class{constructor(){this.pos=0,n(this,d,new Uint8Array(8)),n(this,f,new DataView(r(this,d).buffer)),this.offsets=new WeakMap}seek(e){this.pos=e}writeU32(e){r(this,f).setUint32(0,e,!1),this.write(r(this,d).subarray(0,4))}writeU64(e){r(this,f).setUint32(0,Math.floor(e/2**32),!1),r(this,f).setUint32(4,e,!1),this.write(r(this,d).subarray(0,8))}writeAscii(e){for(let t=0;t<e.length;t++)r(this,f).setUint8(t%8,e.charCodeAt(t)),t%8==7&&this.write(r(this,d));e.length%8!=0&&this.write(r(this,d).subarray(0,e.length%8))}writeBox(e){if(this.offsets.set(e,this.pos),e.contents&&!e.children)this.writeBoxHeader(e,e.size??e.contents.byteLength+8),this.write(e.contents);else{let t=this.pos;if(this.writeBoxHeader(e,0),e.contents&&this.write(e.contents),e.children)for(let t of e.children)t&&this.writeBox(t);let i=this.pos,s=e.size??i-t;this.seek(t),this.writeBoxHeader(e,s),this.seek(i)}}writeBoxHeader(e,t){this.writeU32(e.largeSize?1:t),this.writeAscii(e.type),e.largeSize&&this.writeU64(t)}measureBoxHeader(e){return 8+(e.largeSize?8:0)}patchBox(e){let t=this.pos;this.seek(this.offsets.get(e)),this.writeBox(e),this.seek(t)}measureBox(e){if(e.contents&&!e.children){return this.measureBoxHeader(e)+e.contents.byteLength}{let t=this.measureBoxHeader(e);if(e.contents&&(t+=e.contents.byteLength),e.children)for(let i of e.children)i&&(t+=this.measureBox(i));return t}}};d=new WeakMap,f=new WeakMap;var Ue=class extends Be{constructor(e){super(),n(this,w),n(this,u,void 0),n(this,m,new ArrayBuffer(65536)),n(this,p,new Uint8Array(r(this,m))),n(this,c,0),o(this,u,e)}write(e){h(this,w,g).call(this,this.pos+e.byteLength),r(this,p).set(e,this.pos),this.pos+=e.byteLength,o(this,c,Math.max(r(this,c),this.pos))}finalize(){h(this,w,g).call(this,this.pos),r(this,u).buffer=r(this,m).slice(0,Math.max(r(this,c),this.pos))}};u=new WeakMap,m=new WeakMap,p=new WeakMap,c=new WeakMap,w=new WeakSet,g=function(e){let t=r(this,m).byteLength;for(;t<e;)t*=2;if(t===r(this,m).byteLength)return;let i=new ArrayBuffer(t),s=new Uint8Array(i);s.set(r(this,p),0),o(this,m,i),o(this,p,s)};var De,je,Re,Ie,Ne,Ve,Fe,Le,$e,Pe,He,_e,qe,Ge=class extends Be{constructor(e){super(),n(this,Ve),n(this,Le),n(this,Pe),n(this,_e),n(this,De,void 0),n(this,je,[]),n(this,Re,void 0),n(this,Ie,void 0),n(this,Ne,[]),o(this,De,e),o(this,Re,e.options?.chunked??!1),o(this,Ie,e.options?.chunkSize??16777216)}write(e){r(this,je).push({data:e.slice(),start:this.pos}),this.pos+=e.byteLength}flush(){if(0===r(this,je).length)return;let e=[],t=[...r(this,je)].sort(((e,t)=>e.start-t.start));e.push({start:t[0].start,size:t[0].data.byteLength});for(let i=1;i<t.length;i++){let s=e[e.length-1],a=t[i];a.start<=s.start+s.size?s.size=Math.max(s.size,a.start+a.data.byteLength-s.start):e.push({start:a.start,size:a.data.byteLength})}for(let t of e){t.data=new Uint8Array(t.size);for(let e of r(this,je))t.start<=e.start&&e.start<t.start+t.size&&t.data.set(e.data,e.start-t.start);r(this,Re)?(h(this,Ve,Fe).call(this,t.data,t.start),h(this,_e,qe).call(this)):r(this,De).options.onData?.(t.data,t.start)}r(this,je).length=0}finalize(){r(this,Re)&&h(this,_e,qe).call(this,!0)}};De=new WeakMap,je=new WeakMap,Re=new WeakMap,Ie=new WeakMap,Ne=new WeakMap,Ve=new WeakSet,Fe=function(e,t){let i=r(this,Ne).findIndex((e=>e.start<=t&&t<e.start+r(this,Ie)));-1===i&&(i=h(this,Pe,He).call(this,t));let s=r(this,Ne)[i],a=t-s.start,n=e.subarray(0,Math.min(r(this,Ie)-a,e.byteLength));s.data.set(n,a);let o={start:a,end:a+n.byteLength};if(h(this,Le,$e).call(this,s,o),0===s.written[0].start&&s.written[0].end===r(this,Ie)&&(s.shouldFlush=!0),r(this,Ne).length>2){for(let e=0;e<r(this,Ne).length-1;e++)r(this,Ne)[e].shouldFlush=!0;h(this,_e,qe).call(this)}n.byteLength<e.byteLength&&h(this,Ve,Fe).call(this,e.subarray(n.byteLength),t+n.byteLength)},Le=new WeakSet,$e=function(e,t){let i=0,s=e.written.length-1,a=-1;for(;i<=s;){let r=Math.floor(i+(s-i+1)/2);e.written[r].start<=t.start?(i=r+1,a=r):s=r-1}for(e.written.splice(a+1,0,t),(-1===a||e.written[a].end<t.start)&&a++;a<e.written.length-1&&e.written[a].end>=e.written[a+1].start;)e.written[a].end=Math.max(e.written[a].end,e.written[a+1].end),e.written.splice(a+1,1)},Pe=new WeakSet,He=function(e){let t={start:Math.floor(e/r(this,Ie))*r(this,Ie),data:new Uint8Array(r(this,Ie)),written:[],shouldFlush:!1};return r(this,Ne).push(t),r(this,Ne).sort(((e,t)=>e.start-t.start)),r(this,Ne).indexOf(t)},_e=new WeakSet,qe=function(e=!1){for(let t=0;t<r(this,Ne).length;t++){let i=r(this,Ne)[t];if(i.shouldFlush||e){for(let e of i.written)r(this,De).options.onData?.(i.data.subarray(e.start,e.end),i.start+e.start);r(this,Ne).splice(t--,1)}}};var Je,Ke,Qe,Xe,Ye,Ze,et,tt,it,st,at,rt,nt,ot,ht,lt,dt,ft,ut,mt,pt,ct,wt,gt,bt,yt,kt,Tt,Ct,vt,St,xt,zt,Et,At,Mt,Wt,Ot=class extends Ge{constructor(e){super(new We({onData:(t,i)=>e.stream.write({type:"write",data:t,position:i}),chunked:!0,chunkSize:e.options?.chunkSize}))}},Bt=1e3,Ut=["avc","hevc","vp9","av1"],Dt=["aac","opus"],jt=["strict","offset","cross-track-offset"],Rt=class{constructor(e){if(n(this,nt),n(this,ht),n(this,dt),n(this,ut),n(this,pt),n(this,wt),n(this,bt),n(this,kt),n(this,Ct),n(this,St),n(this,zt),n(this,At),n(this,Je,void 0),n(this,Ke,void 0),n(this,Qe,void 0),n(this,Xe,void 0),n(this,Ye,null),n(this,Ze,null),n(this,et,Math.floor(Date.now()/1e3)+2082844800),n(this,tt,[]),n(this,it,1),n(this,st,[]),n(this,at,[]),n(this,rt,!1),h(this,nt,ot).call(this,e),e.video=j(e.video),e.audio=j(e.audio),e.fastStart=j(e.fastStart),this.target=e.target,o(this,Je,{firstTimestampBehavior:"strict",...e}),e.target instanceof Me)o(this,Ke,new Ue(e.target));else if(e.target instanceof We)o(this,Ke,new Ge(e.target));else{if(!(e.target instanceof Oe))throw new Error(`Invalid target: ${e.target}`);o(this,Ke,new Ot(e.target))}h(this,ut,mt).call(this),h(this,ht,lt).call(this)}addVideoChunk(e,t,i,s){if(!(e instanceof EncodedVideoChunk))throw new TypeError("addVideoChunk's first argument (sample) must be of type EncodedVideoChunk.");if(t&&"object"!=typeof t)throw new TypeError("addVideoChunk's second argument (meta), when provided, must be an object.");if(void 0!==i&&(!Number.isFinite(i)||i<0))throw new TypeError("addVideoChunk's third argument (timestamp), when provided, must be a non-negative real number.");if(void 0!==s&&!Number.isFinite(s))throw new TypeError("addVideoChunk's fourth argument (compositionTimeOffset), when provided, must be a real number.");let a=new Uint8Array(e.byteLength);e.copyTo(a),this.addVideoChunkRaw(a,e.type,i??e.timestamp,e.duration,t,s)}addVideoChunkRaw(e,t,i,s,a,n){if(!(e instanceof Uint8Array))throw new TypeError("addVideoChunkRaw's first argument (data) must be an instance of Uint8Array.");if("key"!==t&&"delta"!==t)throw new TypeError("addVideoChunkRaw's second argument (type) must be either 'key' or 'delta'.");if(!Number.isFinite(i)||i<0)throw new TypeError("addVideoChunkRaw's third argument (timestamp) must be a non-negative real number.");if(!Number.isFinite(s)||s<0)throw new TypeError("addVideoChunkRaw's fourth argument (duration) must be a non-negative real number.");if(a&&"object"!=typeof a)throw new TypeError("addVideoChunkRaw's fifth argument (meta), when provided, must be an object.");if(void 0!==n&&!Number.isFinite(n))throw new TypeError("addVideoChunkRaw's sixth argument (compositionTimeOffset), when provided, must be a real number.");if(h(this,At,Mt).call(this),!r(this,Je).video)throw new Error("No video track declared.");if("object"==typeof r(this,Je).fastStart&&r(this,Ye).samples.length===r(this,Je).fastStart.expectedVideoChunks)throw new Error(`Cannot add more video chunks than specified in 'fastStart' (${r(this,Je).fastStart.expectedVideoChunks}).`);let o=h(this,wt,gt).call(this,r(this,Ye),e,t,i,s,a,n);if("fragmented"===r(this,Je).fastStart&&r(this,Ze)){for(;r(this,at).length>0&&r(this,at)[0].decodeTimestamp<=o.decodeTimestamp;){let e=r(this,at).shift();h(this,bt,yt).call(this,r(this,Ze),e)}o.decodeTimestamp<=r(this,Ze).lastDecodeTimestamp?h(this,bt,yt).call(this,r(this,Ye),o):r(this,st).push(o)}else h(this,bt,yt).call(this,r(this,Ye),o)}addAudioChunk(e,t,i){if(!(e instanceof EncodedAudioChunk))throw new TypeError("addAudioChunk's first argument (sample) must be of type EncodedAudioChunk.");if(t&&"object"!=typeof t)throw new TypeError("addAudioChunk's second argument (meta), when provided, must be an object.");if(void 0!==i&&(!Number.isFinite(i)||i<0))throw new TypeError("addAudioChunk's third argument (timestamp), when provided, must be a non-negative real number.");let s=new Uint8Array(e.byteLength);e.copyTo(s),this.addAudioChunkRaw(s,e.type,i??e.timestamp,e.duration,t)}addAudioChunkRaw(e,t,i,s,a){if(!(e instanceof Uint8Array))throw new TypeError("addAudioChunkRaw's first argument (data) must be an instance of Uint8Array.");if("key"!==t&&"delta"!==t)throw new TypeError("addAudioChunkRaw's second argument (type) must be either 'key' or 'delta'.");if(!Number.isFinite(i)||i<0)throw new TypeError("addAudioChunkRaw's third argument (timestamp) must be a non-negative real number.");if(!Number.isFinite(s)||s<0)throw new TypeError("addAudioChunkRaw's fourth argument (duration) must be a non-negative real number.");if(a&&"object"!=typeof a)throw new TypeError("addAudioChunkRaw's fifth argument (meta), when provided, must be an object.");if(h(this,At,Mt).call(this),!r(this,Je).audio)throw new Error("No audio track declared.");if("object"==typeof r(this,Je).fastStart&&r(this,Ze).samples.length===r(this,Je).fastStart.expectedAudioChunks)throw new Error(`Cannot add more audio chunks than specified in 'fastStart' (${r(this,Je).fastStart.expectedAudioChunks}).`);let n=h(this,wt,gt).call(this,r(this,Ze),e,t,i,s,a);if("fragmented"===r(this,Je).fastStart&&r(this,Ye)){for(;r(this,st).length>0&&r(this,st)[0].decodeTimestamp<=n.decodeTimestamp;){let e=r(this,st).shift();h(this,bt,yt).call(this,r(this,Ye),e)}n.decodeTimestamp<=r(this,Ye).lastDecodeTimestamp?h(this,bt,yt).call(this,r(this,Ze),n):r(this,at).push(n)}else h(this,bt,yt).call(this,r(this,Ze),n)}finalize(){if(r(this,rt))throw new Error("Cannot finalize a muxer more than once.");if("fragmented"===r(this,Je).fastStart){for(let e of r(this,st))h(this,bt,yt).call(this,r(this,Ye),e);for(let e of r(this,at))h(this,bt,yt).call(this,r(this,Ze),e);h(this,St,xt).call(this,!1)}else r(this,Ye)&&h(this,Ct,vt).call(this,r(this,Ye)),r(this,Ze)&&h(this,Ct,vt).call(this,r(this,Ze));let e=[r(this,Ye),r(this,Ze)].filter(Boolean);if("in-memory"===r(this,Je).fastStart){let t;for(let i=0;i<2;i++){let i=F(e,r(this,et)),s=r(this,Ke).measureBox(i);t=r(this,Ke).measureBox(r(this,Xe));let a=r(this,Ke).pos+s+t;for(let e of r(this,tt)){e.offset=a;for(let{data:i}of e.samples)a+=i.byteLength,t+=i.byteLength}if(a<2**32)break;t>=2**32&&(r(this,Xe).largeSize=!0)}let i=F(e,r(this,et));r(this,Ke).writeBox(i),r(this,Xe).size=t,r(this,Ke).writeBox(r(this,Xe));for(let e of r(this,tt))for(let t of e.samples)r(this,Ke).write(t.data),t.data=null}else if("fragmented"===r(this,Je).fastStart){let t=r(this,Ke).pos,i=(e=>I("mfra",null,[...e.map(Ce),ve()]))(e);r(this,Ke).writeBox(i);let s=r(this,Ke).pos-t;r(this,Ke).seek(r(this,Ke).pos-4),r(this,Ke).writeU32(s)}else{let t=r(this,Ke).offsets.get(r(this,Xe)),i=r(this,Ke).pos-t;r(this,Xe).size=i,r(this,Xe).largeSize=i>=2**32,r(this,Ke).patchBox(r(this,Xe));let s=F(e,r(this,et));if("object"==typeof r(this,Je).fastStart){r(this,Ke).seek(r(this,Qe)),r(this,Ke).writeBox(s);let e=t-r(this,Ke).pos;r(this,Ke).writeBox({type:"free",size:e})}else r(this,Ke).writeBox(s)}h(this,zt,Et).call(this),r(this,Ke).finalize(),o(this,rt,!0)}};return Je=new WeakMap,Ke=new WeakMap,Qe=new WeakMap,Xe=new WeakMap,Ye=new WeakMap,Ze=new WeakMap,et=new WeakMap,tt=new WeakMap,it=new WeakMap,st=new WeakMap,at=new WeakMap,rt=new WeakMap,nt=new WeakSet,ot=function(e){if("object"!=typeof e)throw new TypeError("The muxer requires an options object to be passed to its constructor.");if(!(e.target instanceof Ae))throw new TypeError("The target must be provided and an instance of Target.");if(e.video){if(!Ut.includes(e.video.codec))throw new TypeError(`Unsupported video codec: ${e.video.codec}`);if(!Number.isInteger(e.video.width)||e.video.width<=0)throw new TypeError(`Invalid video width: ${e.video.width}. Must be a positive integer.`);if(!Number.isInteger(e.video.height)||e.video.height<=0)throw new TypeError(`Invalid video height: ${e.video.height}. Must be a positive integer.`);const t=e.video.rotation;if("number"==typeof t&&![0,90,180,270].includes(t))throw new TypeError(`Invalid video rotation: ${t}. Has to be 0, 90, 180 or 270.`);if(Array.isArray(t)&&(9!==t.length||t.some((e=>"number"!=typeof e))))throw new TypeError(`Invalid video transformation matrix: ${t.join()}`);if(void 0!==e.video.frameRate&&(!Number.isInteger(e.video.frameRate)||e.video.frameRate<=0))throw new TypeError(`Invalid video frame rate: ${e.video.frameRate}. Must be a positive integer.`)}if(e.audio){if(!Dt.includes(e.audio.codec))throw new TypeError(`Unsupported audio codec: ${e.audio.codec}`);if(!Number.isInteger(e.audio.numberOfChannels)||e.audio.numberOfChannels<=0)throw new TypeError(`Invalid number of audio channels: ${e.audio.numberOfChannels}. Must be a positive integer.`);if(!Number.isInteger(e.audio.sampleRate)||e.audio.sampleRate<=0)throw new TypeError(`Invalid audio sample rate: ${e.audio.sampleRate}. Must be a positive integer.`)}if(e.firstTimestampBehavior&&!jt.includes(e.firstTimestampBehavior))throw new TypeError(`Invalid first timestamp behavior: ${e.firstTimestampBehavior}`);if("object"==typeof e.fastStart){if(e.video){if(void 0===e.fastStart.expectedVideoChunks)throw new TypeError("'fastStart' is an object but is missing property 'expectedVideoChunks'.");if(!Number.isInteger(e.fastStart.expectedVideoChunks)||e.fastStart.expectedVideoChunks<0)throw new TypeError("'expectedVideoChunks' must be a non-negative integer.")}if(e.audio){if(void 0===e.fastStart.expectedAudioChunks)throw new TypeError("'fastStart' is an object but is missing property 'expectedAudioChunks'.");if(!Number.isInteger(e.fastStart.expectedAudioChunks)||e.fastStart.expectedAudioChunks<0)throw new TypeError("'expectedAudioChunks' must be a non-negative integer.")}}else if(![!1,"in-memory","fragmented"].includes(e.fastStart))throw new TypeError("'fastStart' option must be false, 'in-memory', 'fragmented' or an object.");if(void 0!==e.minFragmentDuration&&(!Number.isFinite(e.minFragmentDuration)||e.minFragmentDuration<0))throw new TypeError("'minFragmentDuration' must be a non-negative number.")},ht=new WeakSet,lt=function(){var e;if(r(this,Ke).writeBox((e={holdsAvc:"avc"===r(this,Je).video?.codec,fragmented:"fragmented"===r(this,Je).fastStart}).fragmented?I("ftyp",[A("iso5"),v(512),A("iso5"),A("iso6"),A("mp41")]):I("ftyp",[A("isom"),v(512),A("isom"),e.holdsAvc?A("avc1"):[],A("mp41")])),o(this,Qe,r(this,Ke).pos),"in-memory"===r(this,Je).fastStart)o(this,Xe,V(!1));else if("fragmented"===r(this,Je).fastStart);else{if("object"==typeof r(this,Je).fastStart){let e=h(this,dt,ft).call(this);r(this,Ke).seek(r(this,Ke).pos+e)}o(this,Xe,V(!0)),r(this,Ke).writeBox(r(this,Xe))}h(this,zt,Et).call(this)},dt=new WeakSet,ft=function(){if("object"!=typeof r(this,Je).fastStart)return;let e=0,t=[r(this,Je).fastStart.expectedVideoChunks,r(this,Je).fastStart.expectedAudioChunks];for(let i of t)i&&(e+=8*Math.ceil(2/3*i),e+=4*i,e+=12*Math.ceil(2/3*i),e+=4*i,e+=8*i);return e+=4096,e},ut=new WeakSet,mt=function(){if(r(this,Je).video&&o(this,Ye,{id:1,info:{type:"video",codec:r(this,Je).video.codec,width:r(this,Je).video.width,height:r(this,Je).video.height,rotation:r(this,Je).video.rotation??0,decoderConfig:null},timescale:r(this,Je).video.frameRate??57600,samples:[],finalizedChunks:[],currentChunk:null,firstDecodeTimestamp:void 0,lastDecodeTimestamp:-1,timeToSampleTable:[],compositionTimeOffsetTable:[],lastTimescaleUnits:null,lastSample:null,compactlyCodedChunkTable:[]}),r(this,Je).audio&&(o(this,Ze,{id:r(this,Je).video?2:1,info:{type:"audio",codec:r(this,Je).audio.codec,numberOfChannels:r(this,Je).audio.numberOfChannels,sampleRate:r(this,Je).audio.sampleRate,decoderConfig:null},timescale:r(this,Je).audio.sampleRate,samples:[],finalizedChunks:[],currentChunk:null,firstDecodeTimestamp:void 0,lastDecodeTimestamp:-1,timeToSampleTable:[],compositionTimeOffsetTable:[],lastTimescaleUnits:null,lastSample:null,compactlyCodedChunkTable:[]}),"aac"===r(this,Je).audio.codec)){let e=h(this,pt,ct).call(this,2,r(this,Je).audio.sampleRate,r(this,Je).audio.numberOfChannels);r(this,Ze).info.decoderConfig={codec:r(this,Je).audio.codec,description:e,numberOfChannels:r(this,Je).audio.numberOfChannels,sampleRate:r(this,Je).audio.sampleRate}}},pt=new WeakSet,ct=function(e,t,i){let s=[96e3,88200,64e3,48e3,44100,32e3,24e3,22050,16e3,12e3,11025,8e3,7350].indexOf(t),a=i,r="";r+=e.toString(2).padStart(5,"0"),r+=s.toString(2).padStart(4,"0"),15===s&&(r+=t.toString(2).padStart(24,"0")),r+=a.toString(2).padStart(4,"0");let n=8*Math.ceil(r.length/8);r=r.padEnd(n,"0");let o=new Uint8Array(r.length/8);for(let e=0;e<r.length;e+=8)o[e/8]=parseInt(r.slice(e,e+8),2);return o},wt=new WeakSet,gt=function(e,t,i,s,a,r,n){let o=s/1e6,l=(s-(n??0))/1e6,d=a/1e6,f=h(this,kt,Tt).call(this,o,l,e);return o=f.presentationTimestamp,l=f.decodeTimestamp,r?.decoderConfig&&(null===e.info.decoderConfig?e.info.decoderConfig=r.decoderConfig:Object.assign(e.info.decoderConfig,r.decoderConfig)),{presentationTimestamp:o,decodeTimestamp:l,duration:d,data:t,size:t.byteLength,type:i,timescaleUnitsToNextSample:O(d,e.timescale)}},bt=new WeakSet,yt=function(e,t){"fragmented"!==r(this,Je).fastStart&&e.samples.push(t);const i=O(t.presentationTimestamp-t.decodeTimestamp,e.timescale);if(null!==e.lastTimescaleUnits){let s=O(t.decodeTimestamp,e.timescale,!1),a=Math.round(s-e.lastTimescaleUnits);if(e.lastTimescaleUnits+=a,e.lastSample.timescaleUnitsToNextSample=a,"fragmented"!==r(this,Je).fastStart){let t=M(e.timeToSampleTable);1===t.sampleCount?(t.sampleDelta=a,t.sampleCount++):t.sampleDelta===a?t.sampleCount++:(t.sampleCount--,e.timeToSampleTable.push({sampleCount:2,sampleDelta:a}));const s=M(e.compositionTimeOffsetTable);s.sampleCompositionTimeOffset===i?s.sampleCount++:e.compositionTimeOffsetTable.push({sampleCount:1,sampleCompositionTimeOffset:i})}}else e.lastTimescaleUnits=0,"fragmented"!==r(this,Je).fastStart&&(e.timeToSampleTable.push({sampleCount:1,sampleDelta:O(t.duration,e.timescale)}),e.compositionTimeOffsetTable.push({sampleCount:1,sampleCompositionTimeOffset:i}));e.lastSample=t;let s=!1;if(e.currentChunk){let i=t.presentationTimestamp-e.currentChunk.startTimestamp;if("fragmented"===r(this,Je).fastStart){let a=r(this,Ye)??r(this,Ze);const n=r(this,Je).minFragmentDuration??1;e===a&&"key"===t.type&&i>=n&&(s=!0,h(this,St,xt).call(this))}else s=i>=.5}else s=!0;s&&(e.currentChunk&&h(this,Ct,vt).call(this,e),e.currentChunk={startTimestamp:t.presentationTimestamp,samples:[]}),e.currentChunk.samples.push(t)},kt=new WeakSet,Tt=function(e,t,i){const s="strict"===r(this,Je).firstTimestampBehavior,a=-1===i.lastDecodeTimestamp;if(s&&a&&0!==t)throw new Error(`The first chunk for your media track must have a timestamp of 0 (received DTS=${t}).Non-zero first timestamps are often caused by directly piping frames or audio data from a MediaStreamTrack into the encoder. Their timestamps are typically relative to the age of thedocument, which is probably what you want.\n\nIf you want to offset all timestamps of a track such that the first one is zero, set firstTimestampBehavior: 'offset' in the options.\n`);if("offset"===r(this,Je).firstTimestampBehavior||"cross-track-offset"===r(this,Je).firstTimestampBehavior){let s;void 0===i.firstDecodeTimestamp&&(i.firstDecodeTimestamp=t),s="offset"===r(this,Je).firstTimestampBehavior?i.firstDecodeTimestamp:Math.min(r(this,Ye)?.firstDecodeTimestamp??1/0,r(this,Ze)?.firstDecodeTimestamp??1/0),t-=s,e-=s}if(t<i.lastDecodeTimestamp)throw new Error(`Timestamps must be monotonically increasing (DTS went from ${1e6*i.lastDecodeTimestamp} to ${1e6*t}).`);return i.lastDecodeTimestamp=t,{presentationTimestamp:e,decodeTimestamp:t}},Ct=new WeakSet,vt=function(e){if("fragmented"===r(this,Je).fastStart)throw new Error("Can't finalize individual chunks if 'fastStart' is set to 'fragmented'.");if(e.currentChunk)if(e.finalizedChunks.push(e.currentChunk),r(this,tt).push(e.currentChunk),0!==e.compactlyCodedChunkTable.length&&M(e.compactlyCodedChunkTable).samplesPerChunk===e.currentChunk.samples.length||e.compactlyCodedChunkTable.push({firstChunk:e.finalizedChunks.length,samplesPerChunk:e.currentChunk.samples.length}),"in-memory"!==r(this,Je).fastStart){e.currentChunk.offset=r(this,Ke).pos;for(let t of e.currentChunk.samples)r(this,Ke).write(t.data),t.data=null;h(this,zt,Et).call(this)}else e.currentChunk.offset=0},St=new WeakSet,xt=function(e=!0){if("fragmented"!==r(this,Je).fastStart)throw new Error("Can't finalize a fragment unless 'fastStart' is set to 'fragmented'.");let t=[r(this,Ye),r(this,Ze)].filter((e=>e&&e.currentChunk));if(0===t.length)return;let i=(s=this,a=it,{set _(e){o(s,a,e,n)},get _(){return r(s,a,l)}})._++;var s,a,n,l;if(1===i){let e=F(t,r(this,et),!0);r(this,Ke).writeBox(e)}let d=r(this,Ke).pos,f=ce(i,t);r(this,Ke).writeBox(f);{let e=V(!1),i=0;for(let e of t)for(let t of e.currentChunk.samples)i+=t.size;let s=r(this,Ke).measureBox(e)+i;s>=2**32&&(e.largeSize=!0,s=r(this,Ke).measureBox(e)+i),e.size=s,r(this,Ke).writeBox(e)}for(let e of t){e.currentChunk.offset=r(this,Ke).pos,e.currentChunk.moofOffset=d;for(let t of e.currentChunk.samples)r(this,Ke).write(t.data),t.data=null}let u=r(this,Ke).pos;r(this,Ke).seek(r(this,Ke).offsets.get(f));let m=ce(i,t);r(this,Ke).writeBox(m),r(this,Ke).seek(u);for(let e of t)e.finalizedChunks.push(e.currentChunk),r(this,tt).push(e.currentChunk),e.currentChunk=null;e&&h(this,zt,Et).call(this)},zt=new WeakSet,Et=function(){r(this,Ke)instanceof Ge&&r(this,Ke).flush()},At=new WeakSet,Mt=function(){if(r(this,rt))throw new Error("Cannot add new video or audio chunks after the file has been finalized.")},Wt=l,((a,r,n,o)=>{if(r&&"object"==typeof r||"function"==typeof r)for(let h of i(r))s.call(a,h)||h===n||e(a,h,{get:()=>r[h],enumerable:!(o=t(r,h))||o.enumerable});return a})(e({},"__esModule",{value:!0}),Wt)})();"object"==typeof module&&"object"==typeof module.exports&&Object.assign(module.exports,Mp4Muxer);
+</script>
+<script>
+/* webm-muxer v5.1.4 — MIT License — https://github.com/Vanilagy/webm-muxer (c) Vanilagy — vendored inline, no build step */
+"use strict";var WebMMuxer=(()=>{var t=Object.defineProperty,e=Object.getOwnPropertyDescriptor,i=Object.getOwnPropertyNames,s=Object.prototype.hasOwnProperty,a=(t,e,i)=>{if(!e.has(t))throw TypeError("Cannot "+i)},r=(t,e,i)=>(a(t,e,"read from private field"),i?i.call(t):e.get(t)),n=(t,e,i)=>{if(e.has(t))throw TypeError("Cannot add the same private member more than once");e instanceof WeakSet?e.add(t):e.set(t,i)},h=(t,e,i,s)=>(a(t,e,"write to private field"),s?s.call(t,i):e.set(t,i),i),o=(t,e,i)=>(a(t,e,"access private method"),i),d={};((e,i)=>{for(var s in i)t(e,s,{get:i[s],enumerable:!0})})(d,{ArrayBufferTarget:()=>I,FileSystemWritableFileStreamTarget:()=>x,Muxer:()=>We,StreamTarget:()=>B,SubtitleEncoder:()=>$e});var l,u,c,f,w,p,m,b,g,y,k,v,M,E,W,T,S,U=class{constructor(t){this.value=t}},C=class{constructor(t){this.value=t}},A=t=>t<256?1:t<65536?2:t<1<<24?3:t<2**32?4:t<2**40?5:6,L=(t,e,i)=>{let s=0;for(let a=e;a<i;a++){let e=7-(7&a);s<<=1,s|=(t[Math.floor(a/8)]&1<<e)>>e}return s},z=(Symbol("isTarget"),class{}),I=class extends z{constructor(){super(...arguments),this.buffer=null}},B=class extends z{constructor(t){if(super(),this.options=t,"object"!=typeof t)throw new TypeError("StreamTarget requires an options object to be passed to its constructor.");if(t.onData){if("function"!=typeof t.onData)throw new TypeError("options.onData, when provided, must be a function.");if(t.onData.length<2)throw new TypeError("options.onData, when provided, must be a function that takes in at least two arguments (data and position). Ignoring the position argument, which specifies the byte offset at which the data is to be written, can lead to broken outputs.")}if(t.onHeader&&"function"!=typeof t.onHeader)throw new TypeError("options.onHeader, when provided, must be a function.");if(t.onCluster&&"function"!=typeof t.onCluster)throw new TypeError("options.onCluster, when provided, must be a function.");if(void 0!==t.chunked&&"boolean"!=typeof t.chunked)throw new TypeError("options.chunked, when provided, must be a boolean.");if(void 0!==t.chunkSize&&(!Number.isInteger(t.chunkSize)||t.chunkSize<1024))throw new TypeError("options.chunkSize, when provided, must be an integer and not smaller than 1024.")}},x=class extends z{constructor(t,e){if(super(),this.stream=t,this.options=e,!(t instanceof FileSystemWritableFileStream))throw new TypeError("FileSystemWritableFileStreamTarget requires a FileSystemWritableFileStream instance.");if(void 0!==e&&"object"!=typeof e)throw new TypeError("FileSystemWritableFileStreamTarget's options, when provided, must be an object.");if(e&&void 0!==e.chunkSize&&(!Number.isInteger(e.chunkSize)||e.chunkSize<=0))throw new TypeError("options.chunkSize, when provided, must be a positive integer")}},N=class{constructor(){n(this,c),n(this,w),n(this,m),n(this,g),n(this,k),this.pos=0,n(this,l,new Uint8Array(8)),n(this,u,new DataView(r(this,l).buffer)),this.offsets=new WeakMap,this.dataOffsets=new WeakMap}seek(t){this.pos=t}writeEBMLVarInt(t,e=(t=>{if(t<127)return 1;if(t<16383)return 2;if(t<2097151)return 3;if(t<268435455)return 4;if(t<2**35-1)return 5;if(t<2**42-1)return 6;throw new Error("EBML VINT size not supported "+t)})(t)){let i=0;switch(e){case 1:r(this,u).setUint8(i++,128|t);break;case 2:r(this,u).setUint8(i++,64|t>>8),r(this,u).setUint8(i++,t);break;case 3:r(this,u).setUint8(i++,32|t>>16),r(this,u).setUint8(i++,t>>8),r(this,u).setUint8(i++,t);break;case 4:r(this,u).setUint8(i++,16|t>>24),r(this,u).setUint8(i++,t>>16),r(this,u).setUint8(i++,t>>8),r(this,u).setUint8(i++,t);break;case 5:r(this,u).setUint8(i++,8|t/2**32&7),r(this,u).setUint8(i++,t>>24),r(this,u).setUint8(i++,t>>16),r(this,u).setUint8(i++,t>>8),r(this,u).setUint8(i++,t);break;case 6:r(this,u).setUint8(i++,4|t/2**40&3),r(this,u).setUint8(i++,t/2**32|0),r(this,u).setUint8(i++,t>>24),r(this,u).setUint8(i++,t>>16),r(this,u).setUint8(i++,t>>8),r(this,u).setUint8(i++,t);break;default:throw new Error("Bad EBML VINT size "+e)}this.write(r(this,l).subarray(0,i))}writeEBML(t){if(null!==t)if(t instanceof Uint8Array)this.write(t);else if(Array.isArray(t))for(let e of t)this.writeEBML(e);else if(this.offsets.set(t,this.pos),o(this,g,y).call(this,t.id),Array.isArray(t.data)){let e=this.pos,i=-1===t.size?1:t.size??4;-1===t.size?o(this,c,f).call(this,255):this.seek(this.pos+i);let s=this.pos;if(this.dataOffsets.set(t,s),this.writeEBML(t.data),-1!==t.size){let t=this.pos-s,a=this.pos;this.seek(e),this.writeEBMLVarInt(t,i),this.seek(a)}}else if("number"==typeof t.data){let e=t.size??A(t.data);this.writeEBMLVarInt(e),o(this,g,y).call(this,t.data,e)}else"string"==typeof t.data?(this.writeEBMLVarInt(t.data.length),o(this,k,v).call(this,t.data)):t.data instanceof Uint8Array?(this.writeEBMLVarInt(t.data.byteLength,t.size),this.write(t.data)):t.data instanceof U?(this.writeEBMLVarInt(4),o(this,w,p).call(this,t.data.value)):t.data instanceof C&&(this.writeEBMLVarInt(8),o(this,m,b).call(this,t.data.value))}};l=new WeakMap,u=new WeakMap,c=new WeakSet,f=function(t){r(this,u).setUint8(0,t),this.write(r(this,l).subarray(0,1))},w=new WeakSet,p=function(t){r(this,u).setFloat32(0,t,!1),this.write(r(this,l).subarray(0,4))},m=new WeakSet,b=function(t){r(this,u).setFloat64(0,t,!1),this.write(r(this,l))},g=new WeakSet,y=function(t,e=A(t)){let i=0;switch(e){case 6:r(this,u).setUint8(i++,t/2**40|0);case 5:r(this,u).setUint8(i++,t/2**32|0);case 4:r(this,u).setUint8(i++,t>>24);case 3:r(this,u).setUint8(i++,t>>16);case 2:r(this,u).setUint8(i++,t>>8);case 1:r(this,u).setUint8(i++,t);break;default:throw new Error("Bad UINT size "+e)}this.write(r(this,l).subarray(0,i))},k=new WeakSet,v=function(t){this.write(new Uint8Array(t.split("").map((t=>t.charCodeAt(0)))))};var V,j,F,R,$=class extends N{constructor(t){super(),n(this,T),n(this,M,void 0),n(this,E,new ArrayBuffer(65536)),n(this,W,new Uint8Array(r(this,E))),h(this,M,t)}write(t){o(this,T,S).call(this,this.pos+t.byteLength),r(this,W).set(t,this.pos),this.pos+=t.byteLength}finalize(){o(this,T,S).call(this,this.pos),r(this,M).buffer=r(this,E).slice(0,this.pos)}};M=new WeakMap,E=new WeakMap,W=new WeakMap,T=new WeakSet,S=function(t){let e=r(this,E).byteLength;for(;e<t;)e*=2;if(e===r(this,E).byteLength)return;let i=new ArrayBuffer(e),s=new Uint8Array(i);s.set(r(this,W),0),h(this,E,i),h(this,W,s)};var O=class extends N{constructor(t){super(),this.target=t,n(this,V,!1),n(this,j,void 0),n(this,F,void 0),n(this,R,void 0)}write(t){if(!r(this,V))return;let e=this.pos;if(e<r(this,F)){if(e+t.byteLength<=r(this,F))return;t=t.subarray(r(this,F)-e),e=0}let i=e+t.byteLength-r(this,F),s=r(this,j).byteLength;for(;s<i;)s*=2;if(s!==r(this,j).byteLength){let t=new Uint8Array(s);t.set(r(this,j),0),h(this,j,t)}r(this,j).set(t,e-r(this,F)),h(this,R,Math.max(r(this,R),e+t.byteLength))}startTrackingWrites(){h(this,V,!0),h(this,j,new Uint8Array(1024)),h(this,F,this.pos),h(this,R,this.pos)}getTrackedWrites(){if(!r(this,V))throw new Error("Can't get tracked writes since nothing was tracked.");let t={data:r(this,j).subarray(0,r(this,R)-r(this,F)),start:r(this,F),end:r(this,R)};return h(this,j,void 0),h(this,V,!1),t}};V=new WeakMap,j=new WeakMap,F=new WeakMap,R=new WeakMap;var D,H,P,q,_,G,J,K,Q,X,Y,Z,tt,et,it=class extends O{constructor(t,e){super(t),n(this,J),n(this,Q),n(this,Y),n(this,tt),n(this,D,[]),n(this,H,0),n(this,P,void 0),n(this,q,void 0),n(this,_,void 0),n(this,G,[]),h(this,P,e),h(this,q,t.options?.chunked??!1),h(this,_,t.options?.chunkSize??16777216)}write(t){super.write(t),r(this,D).push({data:t.slice(),start:this.pos}),this.pos+=t.byteLength}flush(){if(0===r(this,D).length)return;let t=[],e=[...r(this,D)].sort(((t,e)=>t.start-e.start));t.push({start:e[0].start,size:e[0].data.byteLength});for(let i=1;i<e.length;i++){let s=t[t.length-1],a=e[i];a.start<=s.start+s.size?s.size=Math.max(s.size,a.start+a.data.byteLength-s.start):t.push({start:a.start,size:a.data.byteLength})}for(let e of t){e.data=new Uint8Array(e.size);for(let t of r(this,D))e.start<=t.start&&t.start<e.start+e.size&&e.data.set(t.data,t.start-e.start);if(r(this,q))o(this,J,K).call(this,e.data,e.start),o(this,tt,et).call(this);else{if(r(this,P)&&e.start<r(this,H))throw new Error("Internal error: Monotonicity violation.");this.target.options.onData?.(e.data,e.start),h(this,H,e.start+e.data.byteLength)}}r(this,D).length=0}finalize(){r(this,q)&&o(this,tt,et).call(this,!0)}};D=new WeakMap,H=new WeakMap,P=new WeakMap,q=new WeakMap,_=new WeakMap,G=new WeakMap,J=new WeakSet,K=function(t,e){let i=r(this,G).findIndex((t=>t.start<=e&&e<t.start+r(this,_)));-1===i&&(i=o(this,Y,Z).call(this,e));let s=r(this,G)[i],a=e-s.start,n=t.subarray(0,Math.min(r(this,_)-a,t.byteLength));s.data.set(n,a);let h={start:a,end:a+n.byteLength};if(o(this,Q,X).call(this,s,h),0===s.written[0].start&&s.written[0].end===r(this,_)&&(s.shouldFlush=!0),r(this,G).length>2){for(let t=0;t<r(this,G).length-1;t++)r(this,G)[t].shouldFlush=!0;o(this,tt,et).call(this)}n.byteLength<t.byteLength&&o(this,J,K).call(this,t.subarray(n.byteLength),e+n.byteLength)},Q=new WeakSet,X=function(t,e){let i=0,s=t.written.length-1,a=-1;for(;i<=s;){let r=Math.floor(i+(s-i+1)/2);t.written[r].start<=e.start?(i=r+1,a=r):s=r-1}for(t.written.splice(a+1,0,e),(-1===a||t.written[a].end<e.start)&&a++;a<t.written.length-1&&t.written[a].end>=t.written[a+1].start;)t.written[a].end=Math.max(t.written[a].end,t.written[a+1].end),t.written.splice(a+1,1)},Y=new WeakSet,Z=function(t){let e={start:Math.floor(t/r(this,_))*r(this,_),data:new Uint8Array(r(this,_)),written:[],shouldFlush:!1};return r(this,G).push(e),r(this,G).sort(((t,e)=>t.start-e.start)),r(this,G).indexOf(e)},tt=new WeakSet,et=function(t=!1){for(let e=0;e<r(this,G).length;e++){let i=r(this,G)[e];if(i.shouldFlush||t){for(let t of i.written){if(r(this,P)&&i.start+t.start<r(this,H))throw new Error("Internal error: Monotonicity violation.");this.target.options.onData?.(i.data.subarray(t.start,t.end),i.start+t.start),h(this,H,i.start+t.end)}r(this,G).splice(e--,1)}}};var st,at,rt,nt,ht,ot,dt,lt,ut,ct,ft,wt,pt,mt,bt,gt,yt,kt,vt,Mt,Et,Wt,Tt,St,Ut,Ct,At,Lt,zt,It,Bt,xt,Nt,Vt,jt,Ft,Rt,$t,Ot,Dt,Ht,Pt,qt,_t,Gt,Jt,Kt,Qt,Xt,Yt,Zt,te,ee,ie,se,ae,re,ne,he,oe,de,le,ue,ce,fe,we,pe,me,be,ge,ye,ke=class extends it{constructor(t,e){super(new B({onData:(e,i)=>t.stream.write({type:"write",data:e,position:i}),chunked:!0,chunkSize:t.options?.chunkSize}),e)}},ve=8192,Me="https://github.com/Vanilagy/webm-muxer",Ee=["strict","offset","permissive"],We=class{constructor(t){n(this,Ct),n(this,Lt),n(this,It),n(this,xt),n(this,Vt),n(this,Ft),n(this,$t),n(this,Dt),n(this,Pt),n(this,_t),n(this,Jt),n(this,Qt),n(this,Yt),n(this,te),n(this,ie),n(this,ae),n(this,ne),n(this,oe),n(this,le),n(this,ce),n(this,we),n(this,me),n(this,ge),n(this,st,void 0),n(this,at,void 0),n(this,rt,void 0),n(this,nt,void 0),n(this,ht,void 0),n(this,ot,void 0),n(this,dt,void 0),n(this,lt,void 0),n(this,ut,void 0),n(this,ct,void 0),n(this,ft,void 0),n(this,wt,void 0),n(this,pt,void 0),n(this,mt,void 0),n(this,bt,0),n(this,gt,[]),n(this,yt,[]),n(this,kt,[]),n(this,vt,void 0),n(this,Mt,void 0),n(this,Et,-1),n(this,Wt,-1),n(this,Tt,-1),n(this,St,void 0),n(this,Ut,!1),o(this,Ct,At).call(this,t),h(this,st,{type:"webm",firstTimestampBehavior:"strict",...t}),this.target=t.target;let e=!!r(this,st).streaming;if(t.target instanceof I)h(this,at,new $(t.target));else if(t.target instanceof B)h(this,at,new it(t.target,e));else{if(!(t.target instanceof x))throw new Error(`Invalid target: ${t.target}`);h(this,at,new ke(t.target,e))}o(this,Lt,zt).call(this)}addVideoChunk(t,e,i){if(!(t instanceof EncodedVideoChunk))throw new TypeError("addVideoChunk's first argument (chunk) must be of type EncodedVideoChunk.");if(e&&"object"!=typeof e)throw new TypeError("addVideoChunk's second argument (meta), when provided, must be an object.");if(void 0!==i&&(!Number.isFinite(i)||i<0))throw new TypeError("addVideoChunk's third argument (timestamp), when provided, must be a non-negative real number.");let s=new Uint8Array(t.byteLength);t.copyTo(s),this.addVideoChunkRaw(s,t.type,i??t.timestamp,e)}addVideoChunkRaw(t,e,i,s){if(!(t instanceof Uint8Array))throw new TypeError("addVideoChunkRaw's first argument (data) must be an instance of Uint8Array.");if("key"!==e&&"delta"!==e)throw new TypeError("addVideoChunkRaw's second argument (type) must be either 'key' or 'delta'.");if(!Number.isFinite(i)||i<0)throw new TypeError("addVideoChunkRaw's third argument (timestamp) must be a non-negative real number.");if(s&&"object"!=typeof s)throw new TypeError("addVideoChunkRaw's fourth argument (meta), when provided, must be an object.");if(o(this,ge,ye).call(this),!r(this,st).video)throw new Error("No video track declared.");void 0===r(this,vt)&&h(this,vt,i),s&&o(this,Yt,Zt).call(this,s);let a=o(this,ae,re).call(this,t,e,i,1);for("V_VP9"===r(this,st).video.codec&&o(this,te,ee).call(this,a),h(this,Et,a.timestamp);r(this,yt).length>0&&r(this,yt)[0].timestamp<=a.timestamp;){let t=r(this,yt).shift();o(this,oe,de).call(this,t,!1)}!r(this,st).audio||a.timestamp<=r(this,Wt)?o(this,oe,de).call(this,a,!0):r(this,gt).push(a),o(this,ie,se).call(this),o(this,Jt,Kt).call(this)}addAudioChunk(t,e,i){if(!(t instanceof EncodedAudioChunk))throw new TypeError("addAudioChunk's first argument (chunk) must be of type EncodedAudioChunk.");if(e&&"object"!=typeof e)throw new TypeError("addAudioChunk's second argument (meta), when provided, must be an object.");if(void 0!==i&&(!Number.isFinite(i)||i<0))throw new TypeError("addAudioChunk's third argument (timestamp), when provided, must be a non-negative real number.");let s=new Uint8Array(t.byteLength);t.copyTo(s),this.addAudioChunkRaw(s,t.type,i??t.timestamp,e)}addAudioChunkRaw(t,e,i,s){if(!(t instanceof Uint8Array))throw new TypeError("addAudioChunkRaw's first argument (data) must be an instance of Uint8Array.");if("key"!==e&&"delta"!==e)throw new TypeError("addAudioChunkRaw's second argument (type) must be either 'key' or 'delta'.");if(!Number.isFinite(i)||i<0)throw new TypeError("addAudioChunkRaw's third argument (timestamp) must be a non-negative real number.");if(s&&"object"!=typeof s)throw new TypeError("addAudioChunkRaw's fourth argument (meta), when provided, must be an object.");if(o(this,ge,ye).call(this),!r(this,st).audio)throw new Error("No audio track declared.");void 0===r(this,Mt)&&h(this,Mt,i),s?.decoderConfig&&(r(this,st).streaming?h(this,ct,o(this,le,ue).call(this,s.decoderConfig.description)):o(this,ce,fe).call(this,r(this,ct),s.decoderConfig.description));let a=o(this,ae,re).call(this,t,e,i,2);for(h(this,Wt,a.timestamp);r(this,gt).length>0&&r(this,gt)[0].timestamp<=a.timestamp;){let t=r(this,gt).shift();o(this,oe,de).call(this,t,!0)}!r(this,st).video||a.timestamp<=r(this,Et)?o(this,oe,de).call(this,a,!r(this,st).video):r(this,yt).push(a),o(this,ie,se).call(this),o(this,Jt,Kt).call(this)}addSubtitleChunk(t,e,i){if("object"!=typeof t||!t)throw new TypeError("addSubtitleChunk's first argument (chunk) must be an object.");if(!(t.body instanceof Uint8Array))throw new TypeError("body must be an instance of Uint8Array.");if(!Number.isFinite(t.timestamp)||t.timestamp<0)throw new TypeError("timestamp must be a non-negative real number.");if(!Number.isFinite(t.duration)||t.duration<0)throw new TypeError("duration must be a non-negative real number.");if(t.additions&&!(t.additions instanceof Uint8Array))throw new TypeError("additions, when present, must be an instance of Uint8Array.");if("object"!=typeof e)throw new TypeError("addSubtitleChunk's second argument (meta) must be an object.");if(o(this,ge,ye).call(this),!r(this,st).subtitles)throw new Error("No subtitle track declared.");e?.decoderConfig&&(r(this,st).streaming?h(this,ft,o(this,le,ue).call(this,e.decoderConfig.description)):o(this,ce,fe).call(this,r(this,ft),e.decoderConfig.description));let s=o(this,ae,re).call(this,t.body,"key",i??t.timestamp,3,t.duration,t.additions);h(this,Tt,s.timestamp),r(this,kt).push(s),o(this,ie,se).call(this),o(this,Jt,Kt).call(this)}finalize(){if(r(this,Ut))throw new Error("Cannot finalize a muxer more than once.");for(;r(this,gt).length>0;)o(this,oe,de).call(this,r(this,gt).shift(),!0);for(;r(this,yt).length>0;)o(this,oe,de).call(this,r(this,yt).shift(),!0);for(;r(this,kt).length>0&&r(this,kt)[0].timestamp<=r(this,bt);)o(this,oe,de).call(this,r(this,kt).shift(),!1);if(r(this,pt)&&o(this,me,be).call(this),r(this,at).writeEBML(r(this,wt)),!r(this,st).streaming){let t=r(this,at).pos,e=r(this,at).pos-r(this,Qt,Xt);r(this,at).seek(r(this,at).offsets.get(r(this,rt))+4),r(this,at).writeEBMLVarInt(e,6),r(this,dt).data=new C(r(this,bt)),r(this,at).seek(r(this,at).offsets.get(r(this,dt))),r(this,at).writeEBML(r(this,dt)),r(this,ht).data[0].data[1].data=r(this,at).offsets.get(r(this,wt))-r(this,Qt,Xt),r(this,ht).data[1].data[1].data=r(this,at).offsets.get(r(this,nt))-r(this,Qt,Xt),r(this,ht).data[2].data[1].data=r(this,at).offsets.get(r(this,ot))-r(this,Qt,Xt),r(this,at).seek(r(this,at).offsets.get(r(this,ht))),r(this,at).writeEBML(r(this,ht)),r(this,at).seek(t)}o(this,Jt,Kt).call(this),r(this,at).finalize(),h(this,Ut,!0)}};st=new WeakMap,at=new WeakMap,rt=new WeakMap,nt=new WeakMap,ht=new WeakMap,ot=new WeakMap,dt=new WeakMap,lt=new WeakMap,ut=new WeakMap,ct=new WeakMap,ft=new WeakMap,wt=new WeakMap,pt=new WeakMap,mt=new WeakMap,bt=new WeakMap,gt=new WeakMap,yt=new WeakMap,kt=new WeakMap,vt=new WeakMap,Mt=new WeakMap,Et=new WeakMap,Wt=new WeakMap,Tt=new WeakMap,St=new WeakMap,Ut=new WeakMap,Ct=new WeakSet,At=function(t){if("object"!=typeof t)throw new TypeError("The muxer requires an options object to be passed to its constructor.");if(!(t.target instanceof z))throw new TypeError("The target must be provided and an instance of Target.");if(t.video){if("string"!=typeof t.video.codec)throw new TypeError(`Invalid video codec: ${t.video.codec}. Must be a string.`);if(!Number.isInteger(t.video.width)||t.video.width<=0)throw new TypeError(`Invalid video width: ${t.video.width}. Must be a positive integer.`);if(!Number.isInteger(t.video.height)||t.video.height<=0)throw new TypeError(`Invalid video height: ${t.video.height}. Must be a positive integer.`);if(void 0!==t.video.frameRate&&(!Number.isFinite(t.video.frameRate)||t.video.frameRate<=0))throw new TypeError(`Invalid video frame rate: ${t.video.frameRate}. Must be a positive number.`);if(void 0!==t.video.alpha&&"boolean"!=typeof t.video.alpha)throw new TypeError(`Invalid video alpha: ${t.video.alpha}. Must be a boolean.`)}if(t.audio){if("string"!=typeof t.audio.codec)throw new TypeError(`Invalid audio codec: ${t.audio.codec}. Must be a string.`);if(!Number.isInteger(t.audio.numberOfChannels)||t.audio.numberOfChannels<=0)throw new TypeError(`Invalid number of audio channels: ${t.audio.numberOfChannels}. Must be a positive integer.`);if(!Number.isInteger(t.audio.sampleRate)||t.audio.sampleRate<=0)throw new TypeError(`Invalid audio sample rate: ${t.audio.sampleRate}. Must be a positive integer.`);if(void 0!==t.audio.bitDepth&&(!Number.isInteger(t.audio.bitDepth)||t.audio.bitDepth<=0))throw new TypeError(`Invalid audio bit depth: ${t.audio.bitDepth}. Must be a positive integer.`)}if(t.subtitles&&"string"!=typeof t.subtitles.codec)throw new TypeError(`Invalid subtitles codec: ${t.subtitles.codec}. Must be a string.`);if(void 0!==t.type&&!["webm","matroska"].includes(t.type))throw new TypeError(`Invalid type: ${t.type}. Must be 'webm' or 'matroska'.`);if(t.firstTimestampBehavior&&!Ee.includes(t.firstTimestampBehavior))throw new TypeError(`Invalid first timestamp behavior: ${t.firstTimestampBehavior}`);if(void 0!==t.streaming&&"boolean"!=typeof t.streaming)throw new TypeError(`Invalid streaming option: ${t.streaming}. Must be a boolean.`)},Lt=new WeakSet,zt=function(){r(this,at)instanceof O&&r(this,at).target.options.onHeader&&r(this,at).startTrackingWrites(),o(this,It,Bt).call(this),r(this,st).streaming||o(this,Ft,Rt).call(this),o(this,$t,Ot).call(this),o(this,xt,Nt).call(this),o(this,Vt,jt).call(this),r(this,st).streaming||(o(this,Dt,Ht).call(this),o(this,Pt,qt).call(this)),o(this,_t,Gt).call(this),o(this,Jt,Kt).call(this)},It=new WeakSet,Bt=function(){let t={id:440786851,data:[{id:17030,data:1},{id:17143,data:1},{id:17138,data:4},{id:17139,data:8},{id:17026,data:r(this,st).type??"webm"},{id:17031,data:2},{id:17029,data:2}]};r(this,at).writeEBML(t)},xt=new WeakSet,Nt=function(){h(this,ut,{id:236,size:4,data:new Uint8Array(ve)}),h(this,ct,{id:236,size:4,data:new Uint8Array(ve)}),h(this,ft,{id:236,size:4,data:new Uint8Array(ve)})},Vt=new WeakSet,jt=function(){h(this,lt,{id:21936,data:[{id:21937,data:2},{id:21946,data:2},{id:21947,data:2},{id:21945,data:0}]})},Ft=new WeakSet,Rt=function(){const t=new Uint8Array([28,83,187,107]),e=new Uint8Array([21,73,169,102]),i=new Uint8Array([22,84,174,107]);h(this,ht,{id:290298740,data:[{id:19899,data:[{id:21419,data:t},{id:21420,size:5,data:0}]},{id:19899,data:[{id:21419,data:e},{id:21420,size:5,data:0}]},{id:19899,data:[{id:21419,data:i},{id:21420,size:5,data:0}]}]})},$t=new WeakSet,Ot=function(){let t={id:17545,data:new C(0)};h(this,dt,t);let e={id:357149030,data:[{id:2807729,data:1e6},{id:19840,data:Me},{id:22337,data:Me},r(this,st).streaming?null:t]};h(this,nt,e)},Dt=new WeakSet,Ht=function(){let t={id:374648427,data:[]};h(this,ot,t),r(this,st).video&&t.data.push({id:174,data:[{id:215,data:1},{id:29637,data:1},{id:131,data:1},{id:134,data:r(this,st).video.codec},r(this,ut),r(this,st).video.frameRate?{id:2352003,data:1e9/r(this,st).video.frameRate}:null,{id:224,data:[{id:176,data:r(this,st).video.width},{id:186,data:r(this,st).video.height},r(this,st).video.alpha?{id:21440,data:1}:null,r(this,lt)]}]}),r(this,st).audio&&(h(this,ct,r(this,st).streaming?r(this,ct)||null:{id:236,size:4,data:new Uint8Array(ve)}),t.data.push({id:174,data:[{id:215,data:2},{id:29637,data:2},{id:131,data:2},{id:134,data:r(this,st).audio.codec},r(this,ct),{id:225,data:[{id:181,data:new U(r(this,st).audio.sampleRate)},{id:159,data:r(this,st).audio.numberOfChannels},r(this,st).audio.bitDepth?{id:25188,data:r(this,st).audio.bitDepth}:null]}]})),r(this,st).subtitles&&t.data.push({id:174,data:[{id:215,data:3},{id:29637,data:3},{id:131,data:17},{id:134,data:r(this,st).subtitles.codec},r(this,ft)]})},Pt=new WeakSet,qt=function(){let t={id:408125543,size:r(this,st).streaming?-1:6,data:[r(this,st).streaming?null:r(this,ht),r(this,nt),r(this,ot)]};if(h(this,rt,t),r(this,at).writeEBML(t),r(this,at)instanceof O&&r(this,at).target.options.onHeader){let{data:t,start:e}=r(this,at).getTrackedWrites();r(this,at).target.options.onHeader(t,e)}},_t=new WeakSet,Gt=function(){h(this,wt,{id:475249515,data:[]})},Jt=new WeakSet,Kt=function(){r(this,at)instanceof it&&r(this,at).flush()},Qt=new WeakSet,Xt=function(){return r(this,at).dataOffsets.get(r(this,rt))},Yt=new WeakSet,Zt=function(t){if(t.decoderConfig){if(t.decoderConfig.colorSpace){let e=t.decoderConfig.colorSpace;if(h(this,St,e),r(this,lt).data=[{id:21937,data:{rgb:1,bt709:1,bt470bg:5,smpte170m:6}[e.matrix]},{id:21946,data:{bt709:1,smpte170m:6,"iec61966-2-1":13}[e.transfer]},{id:21947,data:{bt709:1,bt470bg:5,smpte170m:6}[e.primaries]},{id:21945,data:[1,2][Number(e.fullRange)]}],!r(this,st).streaming){let t=r(this,at).pos;r(this,at).seek(r(this,at).offsets.get(r(this,lt))),r(this,at).writeEBML(r(this,lt)),r(this,at).seek(t)}}t.decoderConfig.description&&(r(this,st).streaming?h(this,ut,o(this,le,ue).call(this,t.decoderConfig.description)):o(this,ce,fe).call(this,r(this,ut),t.decoderConfig.description))}},te=new WeakSet,ee=function(t){if("key"!==t.type)return;if(!r(this,St))return;let e=0;if(2!==L(t.data,0,2))return;e+=2;let i=(L(t.data,e+1,e+2)<<1)+L(t.data,e+0,e+1);e+=2,3===i&&e++;let s=L(t.data,e+0,e+1);if(e++,s)return;let a=L(t.data,e+0,e+1);if(e++,0!==a)return;e+=2;let n=L(t.data,e+0,e+24);if(e+=24,4817730!==n)return;i>=2&&e++;let h={rgb:7,bt709:2,bt470bg:1,smpte170m:3}[r(this,St).matrix];((t,e,i,s)=>{for(let a=e;a<i;a++){let e=Math.floor(a/8),r=t[e],n=7-(7&a);r&=~(1<<n),r|=(s&1<<i-a-1)>>i-a-1<<n,t[e]=r}})(t.data,e+0,e+3,h)},ie=new WeakSet,se=function(){let t=Math.min(r(this,st).video?r(this,Et):1/0,r(this,st).audio?r(this,Wt):1/0),e=r(this,kt);for(;e.length>0&&e[0].timestamp<=t;)o(this,oe,de).call(this,e.shift(),!r(this,st).video&&!r(this,st).audio)},ae=new WeakSet,re=function(t,e,i,s,a,r){return{data:t,additions:r,type:e,timestamp:o(this,ne,he).call(this,i,s),duration:a,trackNumber:s}},ne=new WeakSet,he=function(t,e){let i=r(this,1===e?Et:2===e?Wt:Tt);if(3!==e){let s=r(this,1===e?vt:Mt);if("strict"===r(this,st).firstTimestampBehavior&&-1===i&&0!==t)throw new Error(`The first chunk for your media track must have a timestamp of 0 (received ${t}). Non-zero first timestamps are often caused by directly piping frames or audio data from a MediaStreamTrack into the encoder. Their timestamps are typically relative to the age of the document, which is probably what you want.\n\nIf you want to offset all timestamps of a track such that the first one is zero, set firstTimestampBehavior: 'offset' in the options.\nIf you want to allow non-zero first timestamps, set firstTimestampBehavior: 'permissive'.\n`);"offset"===r(this,st).firstTimestampBehavior&&(t-=s)}if(t<i)throw new Error(`Timestamps must be monotonically increasing (went from ${i} to ${t}).`);if(t<0)throw new Error(`Timestamps must be non-negative (received ${t}).`);return t},oe=new WeakSet,de=function(t,e){r(this,st).streaming&&!r(this,ot)&&(o(this,Dt,Ht).call(this),o(this,Pt,qt).call(this));let i=Math.floor(t.timestamp/1e3),s=i-r(this,mt),a=e&&"key"===t.type&&s>=1e3,n=s>=32768;if((!r(this,pt)||a||n)&&(o(this,we,pe).call(this,i),s=0),s<0)return;let d=new Uint8Array(4),l=new DataView(d.buffer);if(l.setUint8(0,128|t.trackNumber),l.setInt16(1,s,!1),void 0!==t.duration||t.additions){let e=Math.floor(t.duration/1e3),i={id:160,data:[{id:161,data:[d,t.data]},void 0!==t.duration?{id:155,data:e}:null,t.additions?{id:30113,data:t.additions}:null]};r(this,at).writeEBML(i)}else{l.setUint8(3,Number("key"===t.type)<<7);let e={id:163,data:[d,t.data]};r(this,at).writeEBML(e)}h(this,bt,Math.max(r(this,bt),i))},le=new WeakSet,ue=function(t){return{id:25506,size:4,data:new Uint8Array(t)}},ce=new WeakSet,fe=function(t,e){let i=r(this,at).pos;r(this,at).seek(r(this,at).offsets.get(t));let s=6+e.byteLength,a=ve-s;if(a<0){let t=e.byteLength+a;e=e instanceof ArrayBuffer?e.slice(0,t):e.buffer.slice(0,t),a=0}t=[o(this,le,ue).call(this,e),{id:236,size:4,data:new Uint8Array(a)}],r(this,at).writeEBML(t),r(this,at).seek(i)},we=new WeakSet,pe=function(t){r(this,pt)&&o(this,me,be).call(this),r(this,at)instanceof O&&r(this,at).target.options.onCluster&&r(this,at).startTrackingWrites(),h(this,pt,{id:524531317,size:r(this,st).streaming?-1:5,data:[{id:231,data:t}]}),r(this,at).writeEBML(r(this,pt)),h(this,mt,t);let e=r(this,at).offsets.get(r(this,pt))-r(this,Qt,Xt);r(this,wt).data.push({id:187,data:[{id:179,data:t},r(this,st).video?{id:183,data:[{id:247,data:1},{id:241,data:e}]}:null,r(this,st).audio?{id:183,data:[{id:247,data:2},{id:241,data:e}]}:null]})},me=new WeakSet,be=function(){if(!r(this,st).streaming){let t=r(this,at).pos-r(this,at).dataOffsets.get(r(this,pt)),e=r(this,at).pos;r(this,at).seek(r(this,at).offsets.get(r(this,pt))+4),r(this,at).writeEBMLVarInt(t,5),r(this,at).seek(e)}if(r(this,at)instanceof O&&r(this,at).target.options.onCluster){let{data:t,start:e}=r(this,at).getTrackedWrites();r(this,at).target.options.onCluster(t,e,r(this,mt))}},ge=new WeakSet,ye=function(){if(r(this,Ut))throw new Error("Cannot add new video or audio chunks after the file has been finalized.")};var Te,Se,Ue,Ce,Ae,Le,ze,Ie,Be,xe,Ne=/(?:(.+?)\n)?((?:\d{2}:)?\d{2}:\d{2}.\d{3})\s+-->\s+((?:\d{2}:)?\d{2}:\d{2}.\d{3})/g,Ve=/^WEBVTT.*?\n{2}/,je=/(?:(\d{2}):)?(\d{2}):(\d{2}).(\d{3})/,Fe=/<(?:(\d{2}):)?(\d{2}):(\d{2}).(\d{3})>/g,Re=new TextEncoder,$e=class{constructor(t){n(this,Le),n(this,Ie),n(this,Te,void 0),n(this,Se,void 0),n(this,Ue,!1),n(this,Ce,void 0),n(this,Ae,!1),h(this,Te,t)}configure(t){if("webvtt"!==t.codec)throw new Error("Codec must be 'webvtt'.");h(this,Se,t)}encode(t){if(!r(this,Se))throw new Error("Encoder not configured.");let e;if(t=t.replace("\r\n","\n").replace("\r","\n"),Ne.lastIndex=0,!r(this,Ue)){if(!Ve.test(t)){let t=new Error("WebVTT preamble incorrect.");throw r(this,Te).error(t),t}e=Ne.exec(t);let i=t.slice(0,e?.index??t.length).trimEnd();if(!i){let t=new Error("No WebVTT preamble provided.");throw r(this,Te).error(t),t}h(this,Ce,Re.encode(i)),h(this,Ue,!0),e&&(t=t.slice(e.index),Ne.lastIndex=0)}for(;e=Ne.exec(t);){let i=t.slice(0,e.index),s=e[1]||"",a=e.index+e[0].length,n=t.indexOf("\n",a)+1,d=t.slice(a,n).trim(),l=t.indexOf("\n\n",a);-1===l&&(l=t.length);let u=o(this,Le,ze).call(this,e[2]),c=o(this,Le,ze).call(this,e[3])-u,f=t.slice(n,l),w=`${d}\n${s}\n${i}`;Fe.lastIndex=0,f=f.replace(Fe,(t=>{let e=o(this,Le,ze).call(this,t.slice(1,-1))-u;return`<${o(this,Ie,Be).call(this,e)}>`})),t=t.slice(l).trimStart(),Ne.lastIndex=0;let p={body:Re.encode(f),additions:""===w.trim()?void 0:Re.encode(w),timestamp:1e3*u,duration:1e3*c},m={};r(this,Ae)||(m.decoderConfig={description:r(this,Ce)},h(this,Ae,!0)),r(this,Te).output(p,m)}}};return Te=new WeakMap,Se=new WeakMap,Ue=new WeakMap,Ce=new WeakMap,Ae=new WeakMap,Le=new WeakSet,ze=function(t){let e=je.exec(t);if(!e)throw new Error("Expected match.");return 36e5*Number(e[1]||"0")+6e4*Number(e[2])+1e3*Number(e[3])+Number(e[4])},Ie=new WeakSet,Be=function(t){let e=Math.floor(t/36e5),i=Math.floor(t%36e5/6e4),s=Math.floor(t%6e4/1e3),a=t%1e3;return e.toString().padStart(2,"0")+":"+i.toString().padStart(2,"0")+":"+s.toString().padStart(2,"0")+"."+a.toString().padStart(3,"0")},xe=d,((a,r,n,h)=>{if(r&&"object"==typeof r||"function"==typeof r)for(let o of i(r))s.call(a,o)||o===n||t(a,o,{get:()=>r[o],enumerable:!(h=e(r,o))||h.enumerable});return a})(t({},"__esModule",{value:!0}),xe)})();"object"==typeof module&&"object"==typeof module.exports&&Object.assign(module.exports,WebMMuxer);
+</script>
+
 <script>
     // --- DOM Elements ---
     const controls = {
@@ -630,6 +759,7 @@
         gridSpacing: document.getElementById('grid-spacing'),
         gridType: document.getElementById('grid-type'),
         renderMode: document.getElementById('render-mode'),
+        invertTone: document.getElementById('invert-tone'),
         contrast: document.getElementById('contrast'),
         threshold: document.getElementById('threshold'),
         opacityVar: document.getElementById('opacity-var'),
@@ -641,8 +771,11 @@
         bgColor: document.getElementById('bg-color'),
         bgColorHex: document.getElementById('bg-color-hex'),
         previewFps: document.getElementById('preview-fps'),
+        exportFps: document.getElementById('export-fps'),
         maxFrame: document.getElementById('max-frame'),
         bitrate: document.getElementById('bitrate'),
+        aspectRatio: document.getElementById('aspect-ratio'),
+        resolutionTier: document.getElementById('resolution-tier'),
     };
 
     const valDisplays = {
@@ -668,6 +801,7 @@
     const btnExportPng = document.getElementById('btn-export-png');
     const btnExportSvg = document.getElementById('btn-export-svg');
     const btnExportVideo = document.getElementById('btn-export-video');
+    const btnCancelExport = document.getElementById('btn-cancel-export');
     const btnReset = document.getElementById('btn-reset');
 
     const videoGroup = document.getElementById('video-group');
@@ -677,6 +811,7 @@
     const timeCode = document.getElementById('time-code');
     const videoLoop = document.getElementById('video-loop');
     const sourceInfo = document.getElementById('source-info');
+    const presetSelect = document.getElementById('preset-select');
 
     // Resolved during init, once RECORD_FORMATS is in scope.
     let canRecord = false;
@@ -700,6 +835,56 @@
     let recordFormat = null;    // container/codec chosen for the current recording
     let finalised = true;       // guards the one-shot save-and-unlock step
     let finaliseTimer = null;
+    let currentCrop = { sx: 0, sy: 0, sw: 0, sh: 0 }; // aspect-ratio crop rect within the natural frame
+    let currentSourceFile = null; // the uploaded video File, kept for offline audio decoding
+    let isExporting = false;      // true while either export path (offline or legacy) is running
+    let cancelExportRequested = false; // set by Cancel; the offline frame loop bails and writes no file
+
+    // --- Presets ---
+    const PRESETS = {
+        default: {
+            maxSize: 6, minSize: 1, gridSpacing: 5, gridType: 'hex',
+            renderMode: 'tone', invertTone: 'off', contrast: 10, threshold: 128, opacityVar: 0,
+            posJitter: 20, sizeJitter: 10, colorMode: 'single',
+            dotColor: '#000050', bgColor: '#FFFFFF', bitrate: '16',
+        },
+        highContrastThreshold: {
+            maxSize: 4, minSize: 1, gridSpacing: 4, gridType: 'hex',
+            renderMode: 'threshold', invertTone: 'off', contrast: 80, threshold: 200, opacityVar: 100,
+            posJitter: 0, sizeJitter: 0, colorMode: 'single',
+            dotColor: '#000050', bgColor: '#FFFFFF', bitrate: '50',
+        },
+    };
+
+    function applyPreset(key) {
+        const p = PRESETS[key];
+        if (!p) return;
+
+        controls.maxSize.value = p.maxSize;
+        controls.minSize.value = p.minSize;
+        controls.gridSpacing.value = p.gridSpacing;
+        controls.gridType.value = p.gridType;
+        controls.renderMode.value = p.renderMode;
+        controls.invertTone.value = p.invertTone;
+        controls.contrast.value = p.contrast;
+        controls.threshold.value = p.threshold;
+        controls.opacityVar.value = p.opacityVar;
+        controls.posJitter.value = p.posJitter;
+        controls.sizeJitter.value = p.sizeJitter;
+        controls.colorMode.value = p.colorMode;
+        controls.dotColor.value = p.dotColor;
+        controls.dotColorHex.value = p.dotColor.toUpperCase();
+        controls.bgColor.value = p.bgColor;
+        controls.bgColorHex.value = p.bgColor.toUpperCase();
+        controls.bitrate.value = p.bitrate;
+
+        for (const k in valDisplays) {
+            valDisplays[k].textContent = controls[k].value;
+        }
+        toggleThresholdControl();
+        toggleColorControl();
+        onSettingsChanged();
+    }
 
     // --- Event Listeners for Controls (Update displays & UI logic) ---
     function setupControlListeners() {
@@ -719,6 +904,9 @@
         controls.renderMode.addEventListener('change', toggleThresholdControl);
         controls.colorMode.addEventListener('change', toggleColorControl);
         controls.maxFrame.addEventListener('change', applySourceSize);
+        controls.exportFps.addEventListener('change', updateExportFpsHint);
+        controls.aspectRatio.addEventListener('change', applySourceSize);
+        controls.resolutionTier.addEventListener('change', applySourceSize);
 
         // Sync Hex/Color Pickers
         controls.dotColor.addEventListener('input', (e) => controls.dotColorHex.value = e.target.value.toUpperCase());
@@ -729,6 +917,7 @@
         controls.bgColor.addEventListener('input', onSettingsChanged);
 
         btnReset.addEventListener('click', resetControls);
+        presetSelect.addEventListener('change', (e) => applyPreset(e.target.value));
 
         setupVideoListeners();
     }
@@ -759,7 +948,10 @@
             if (sourceVideo.paused) scheduleFrame();
             updateTimeUI();
         });
-        sourceVideo.addEventListener('play', () => { updatePlayButton(); startPreview(); });
+        sourceVideo.addEventListener('play', () => {
+            updatePlayButton();
+            startPreview();
+        });
         sourceVideo.addEventListener('pause', () => {
             updatePlayButton();
             stopPreview();
@@ -805,6 +997,51 @@
         loadFile(file);
     });
 
+    // The drop zone advertises "click or drag", so wire the drag half up too.
+    // Without this, dropping a file makes the browser navigate away from the
+    // page and lose the current settings.
+    const dropZone = document.getElementById('file-input-label');
+
+    function setDropActive(active) {
+        dropZone.classList.toggle('drag-over', active);
+    }
+
+    ['dragenter', 'dragover'].forEach((evt) => {
+        dropZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isExporting) return;
+            e.dataTransfer.dropEffect = 'copy';
+            setDropActive(true);
+        });
+    });
+
+    ['dragleave', 'dragend'].forEach((evt) => {
+        dropZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDropActive(false);
+        });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDropActive(false);
+        if (isExporting) return;
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) loadFile(file);
+    });
+
+    // A file dropped anywhere else would still navigate the page away, so
+    // swallow those too.
+    ['dragover', 'drop'].forEach((evt) => {
+        window.addEventListener(evt, (e) => {
+            if (dropZone.contains(e.target)) return;
+            e.preventDefault();
+        });
+    });
+
     function loadFile(file) {
         const isVideo = file.type.startsWith('video/');
         const isImage = file.type.startsWith('image/');
@@ -820,6 +1057,7 @@
 
         if (isVideo) {
             sourceUrl = URL.createObjectURL(file);
+            currentSourceFile = file;
             source.type = 'video';
             source.el = sourceVideo;
 
@@ -839,7 +1077,7 @@
                 // once Generate has produced one. generate() enables it.
                 btnExportVideo.disabled = true;
                 btnExportVideo.textContent = recordLabel();
-                btnExportVideo.title = canRecord ? '' : 'Canvas recording is not supported in this browser.';
+                btnExportVideo.title = canRecord ? '' : 'Video export is not supported in this browser.';
                 sourceVideo.loop = videoLoop.checked;
                 jitterSeed = (Math.random() * 0xffffff) | 0;
                 describeSource();
@@ -876,7 +1114,10 @@
     // once, and fall back to a data URL — costlier in memory, always readable.
     function verifyReadable(file) {
         try {
-            offscreenCtx.drawImage(sourceVideo, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+            offscreenCtx.drawImage(
+                sourceVideo, currentCrop.sx, currentCrop.sy, currentCrop.sw, currentCrop.sh,
+                0, 0, offscreenCanvas.width, offscreenCanvas.height
+            );
             offscreenCtx.getImageData(0, 0, 1, 1);
             return true;
         } catch (err) {
@@ -916,6 +1157,7 @@
             sourceUrl = null;
         }
         source = { type: null, el: null, name: '' };
+        currentSourceFile = null;
         usingDataUrl = false;
         isSourceLoaded = false;
         halftoneActive = false;
@@ -938,21 +1180,65 @@
         return { w: 0, h: 0 };
     }
 
-    // Videos are optionally downscaled: a full-resolution frame can mean tens of
-    // thousands of circles per frame, which no longer plays back in real time.
+    // --- Aspect-ratio crop & output resolution (image + video) ---
+    const ASPECT_RATIOS = { '16:9': 16 / 9, '1:1': 1, '9:16': 9 / 16 };
+    // Target short-edge pixel count per tier (e.g. 4K -> 2160p short edge regardless of orientation).
+    const RESOLUTION_TIERS = { '1k': 1080, '2k': 1440, '4k': 2160 };
+
+    function computeCrop(sourceW, sourceH, aspectValue) {
+        const targetRatio = ASPECT_RATIOS[aspectValue];
+        if (!targetRatio || !sourceW || !sourceH) return { sx: 0, sy: 0, sw: sourceW, sh: sourceH };
+
+        const sourceRatio = sourceW / sourceH;
+        if (sourceRatio > targetRatio) {
+            // Source is wider than the target - crop the sides.
+            const sh = sourceH;
+            const sw = Math.round(sourceH * targetRatio);
+            return { sx: Math.round((sourceW - sw) / 2), sy: 0, sw, sh };
+        }
+        // Source is taller/narrower than the target - crop top/bottom.
+        const sw = sourceW;
+        const sh = Math.round(sourceW / targetRatio);
+        return { sx: 0, sy: Math.round((sourceH - sh) / 2), sw, sh };
+    }
+
+    function computeResolutionScale(sw, sh, tierValue) {
+        const shortEdge = RESOLUTION_TIERS[tierValue];
+        if (!shortEdge || !sw || !sh) return { w: sw, h: sh }; // 'native' - no scaling
+        const scale = shortEdge / Math.min(sw, sh);
+        return { w: Math.round(sw * scale), h: Math.round(sh * scale) };
+    }
+
+    // Videos are additionally capped for preview performance: a full-resolution
+    // frame can mean tens of thousands of circles per frame, which no longer
+    // plays back in real time. Images render at the cropped/scaled size as-is.
     function targetSize() {
-        const { w, h } = naturalSize();
-        const cap = source.type === 'video' ? parseInt(controls.maxFrame.value) : 0;
-        const longest = Math.max(w, h);
-        if (!cap || !longest || longest <= cap) return { w, h };
-        const scale = cap / longest;
-        return { w: Math.max(1, Math.round(w * scale)), h: Math.max(1, Math.round(h * scale)) };
+        const nat = naturalSize();
+        if (!nat.w || !nat.h) return { w: 0, h: 0, crop: { sx: 0, sy: 0, sw: 0, sh: 0 } };
+
+        const crop = computeCrop(nat.w, nat.h, controls.aspectRatio.value);
+        let { w, h } = computeResolutionScale(crop.sw, crop.sh, controls.resolutionTier.value);
+
+        if (source.type === 'video') {
+            const cap = parseInt(controls.maxFrame.value);
+            const longest = Math.max(w, h);
+            if (cap && longest > cap) {
+                const scale = cap / longest;
+                w = Math.max(1, Math.round(w * scale));
+                h = Math.max(1, Math.round(h * scale));
+            }
+            // Video encoders (H.264/VP9) generally require even width/height.
+            w = Math.max(2, w - (w % 2));
+            h = Math.max(2, h - (h % 2));
+        }
+        return { w, h, crop };
     }
 
     function applySourceSize() {
         if (!source.type) return;
-        const { w, h } = targetSize();
+        const { w, h, crop } = targetSize();
         if (!w || !h) return;
+        currentCrop = crop;
         mainCanvas.width = w;
         mainCanvas.height = h;
         offscreenCanvas.width = w;
@@ -961,16 +1247,66 @@
         if (isSourceLoaded) scheduleFrame();
     }
 
+    function escapeHtml(str) {
+        return str.replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        }[ch]));
+    }
+
+    // Long, often machine-generated filenames (export IDs, UUIDs) otherwise blow
+    // out the sidebar. Keep the start and the extension, drop the noisy middle.
+    function truncateMiddle(name, max) {
+        if (name.length <= max) return name;
+        const dot = name.lastIndexOf('.');
+        const hasExt = dot > 0 && name.length - dot <= 6;
+        const ext = hasExt ? name.slice(dot) : '';
+        const base = hasExt ? name.slice(0, dot) : name;
+        const keep = Math.max(max - ext.length - 1, 4);
+        return base.slice(0, keep) + '…' + ext;
+    }
+
     function describeSource() {
         if (!source.type) {
             sourceInfo.textContent = 'No source loaded.';
             return;
         }
         const nat = naturalSize();
-        const out = targetSize();
-        const scaled = (nat.w !== out.w || nat.h !== out.h) ? ` → rendering at ${out.w}×${out.h}` : '';
+        const { w, h, crop } = targetSize();
+        const cropped = crop.sw !== nat.w || crop.sh !== nat.h;
+        const scaled = w !== crop.sw || h !== crop.sh;
+
+        // Full breakdown always lives in the tooltip; the visible line just
+        // shows original -> final so it stays skimmable.
+        let dimsText = `${nat.w}×${nat.h}`;
+        let dimsTitle = `${nat.w}×${nat.h} original`;
+        if (cropped) dimsTitle += ` → cropped to ${crop.sw}×${crop.sh}`;
+        if (scaled) dimsTitle += ` → rendered at ${w}×${h}`;
+        if (cropped || scaled) dimsText += ` <span class="dims-arrow">→</span> ${w}×${h}`;
+
         const kind = source.type === 'video' ? 'Video' : 'Image';
-        sourceInfo.textContent = `${kind}: ${source.name} — ${nat.w}×${nat.h}${scaled}`;
+        const fullName = source.name;
+        const shortName = truncateMiddle(fullName, 26);
+
+        sourceInfo.innerHTML =
+            `<span class="source-line">` +
+                `<span class="source-badge">${kind}</span>` +
+                `<span class="source-name" title="${escapeHtml(fullName)}">${escapeHtml(shortName)}</span>` +
+            `</span>` +
+            `<span class="source-dims" title="${escapeHtml(dimsTitle)}">${dimsText}</span>`;
+    }
+
+    // The frame rate of the exported file. An explicit user choice: there is no
+    // reliable metadata API for a source's frame rate, and measuring it by
+    // playback proved too flaky to depend on, so we ask rather than guess.
+    function resolveExportFps() {
+        return parseInt(controls.exportFps.value);
+    }
+
+    function updateExportFpsHint() {
+        const hint = document.getElementById('export-fps-hint');
+        if (!hint) return;
+        hint.textContent = `Frame rate of the downloaded video — exporting at ${resolveExportFps()} fps. ` +
+            'Set this to your source\u2019s rate to avoid dropped or duplicated frames.';
     }
 
     // --- Playback & Frame Scheduling ---
@@ -1057,7 +1393,10 @@
     function drawPlainFrame() {
         mainCtx.fillStyle = '#ffffff';
         mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
-        mainCtx.drawImage(source.el, 0, 0, mainCanvas.width, mainCanvas.height);
+        mainCtx.drawImage(
+            source.el, currentCrop.sx, currentCrop.sy, currentCrop.sw, currentCrop.sh,
+            0, 0, mainCanvas.width, mainCanvas.height
+        );
     }
 
 
@@ -1109,9 +1448,12 @@
 
     function getProcessData() {
         // Draw source (image frame or current video frame) to offscreen for
-        // sampling, scaled to the render size.
+        // sampling, cropped to the chosen aspect ratio and scaled to the render size.
         offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-        offscreenCtx.drawImage(source.el, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+        offscreenCtx.drawImage(
+            source.el, currentCrop.sx, currentCrop.sy, currentCrop.sw, currentCrop.sh,
+            0, 0, offscreenCanvas.width, offscreenCanvas.height
+        );
         const imgData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
         const pixels = imgData.data;
 
@@ -1129,6 +1471,7 @@
         const sizeJitterStr = parseInt(controls.sizeJitter.value) / 100;
         const isHex = controls.gridType.value === 'hex';
         const isThresholdMode = controls.renderMode.value === 'threshold';
+        const isInverted = controls.invertTone.value === 'on';
         const isOriginalColor = controls.colorMode.value === 'original';
         const dotHex = controls.dotColor.value;
         const bgHex = controls.bgColor.value;
@@ -1161,6 +1504,9 @@
                 // Apply Contrast
                 brightness = contrastFactor * (brightness - 128) + 128;
                 brightness = Math.max(0, Math.min(255, brightness)); // Clamp 0-255
+
+                // Invert which tones get emphasized (e.g. dark backgrounds -> clean background, bold subject)
+                if (isInverted) brightness = 255 - brightness;
 
                 const normBright = brightness / 255; // 0.0 - 1.0 (0=dark, 1=light)
 
@@ -1289,13 +1635,273 @@ ${svgBody}</svg>`;
         downloadBlob(blob, `wpp-dot-illustration${exportSuffix()}.svg`);
     });
 
-    // --- Video Recording ---
-    // Records the halftone canvas itself, so what you see in the preview is what
-    // lands in the file. Runs the clip once from the start with looping off.
+    // --- Video Export ---
+    // Two export paths exist:
+    //  1. Offline (preferred): steps through the source frame-by-frame via
+    //     WebCodecs, with no real-time playback and no live preview needed.
+    //     Every frame gets an explicit presentation timestamp, so a slow
+    //     render (dense grid, high output resolution) just takes longer to
+    //     produce — it can never stall the clip or bake a frozen frame into
+    //     the file, and the output always plays back at the correct speed.
+    //  2. Legacy (fallback for browsers without WebCodecs): records the
+    //     canvas in real time via MediaRecorder while the source actually
+    //     plays, exactly like the old approach.
     let loopBeforeRecording = true;
 
-    // MP4/H.264 first: it opens in QuickTime, Quick Look, Premiere and After
-    // Effects. WebM is only a fallback for browsers that cannot record MP4.
+    function recordLabel() {
+        return 'Download Video';
+    }
+
+    const supportsOfflineExport = typeof VideoEncoder !== 'undefined' &&
+        typeof VideoFrame !== 'undefined' &&
+        typeof EncodedVideoChunk !== 'undefined' &&
+        typeof Mp4Muxer !== 'undefined' && typeof WebMMuxer !== 'undefined';
+
+    btnExportVideo.addEventListener('click', () => {
+        if (isExporting) return; // already running — always processes 0s to end, no manual stop
+        if (supportsOfflineExport) startOfflineExport();
+        else startRecording();
+    });
+
+    // Cancel abandons the export entirely rather than saving what was rendered
+    // so far — a downloaded file always spans the whole clip.
+    btnCancelExport.addEventListener('click', () => {
+        if (!isExporting) return;
+        cancelExportRequested = true;
+        btnCancelExport.disabled = true;
+        btnCancelExport.textContent = 'Cancelling…';
+    });
+
+    // --- Offline export (WebCodecs + vendored muxers) ---
+    // Tries H.264/MP4 first for compatibility with QuickTime, Premiere, and
+    // After Effects; falls back to VP9/WebM if the browser or resolution
+    // isn't supported for H.264 encoding.
+    const OFFLINE_VIDEO_CODECS = [
+        { container: 'mp4',  codec: 'avc1.640034', muxerCodec: 'avc'    }, // H.264 High@5.2
+        { container: 'mp4',  codec: 'avc1.640033', muxerCodec: 'avc'    }, // H.264 High@5.1
+        { container: 'mp4',  codec: 'avc1.64002A', muxerCodec: 'avc'    }, // H.264 High@4.2
+        { container: 'mp4',  codec: 'avc1.640028', muxerCodec: 'avc'    }, // H.264 High@4.0
+        { container: 'mp4',  codec: 'avc1.4d4028', muxerCodec: 'avc'    }, // H.264 Main@4.0
+        { container: 'mp4',  codec: 'avc1.42001f', muxerCodec: 'avc'    }, // H.264 Baseline@3.1
+        { container: 'webm', codec: 'vp09.00.10.08', muxerCodec: 'V_VP9' },
+        { container: 'webm', codec: 'vp8',           muxerCodec: 'V_VP8' },
+    ];
+
+    async function pickOfflineVideoCodec(width, height, bitrate, fps) {
+        for (const cand of OFFLINE_VIDEO_CODECS) {
+            try {
+                const support = await VideoEncoder.isConfigSupported({
+                    codec: cand.codec, width, height, bitrate, framerate: fps,
+                });
+                if (support && support.supported) return cand;
+            } catch (err) { /* try the next candidate */ }
+        }
+        return null;
+    }
+
+    async function pickOfflineAudioCodec(container, audioBuffer) {
+        if (!audioBuffer || typeof AudioEncoder === 'undefined') return null;
+        const codec = container === 'mp4' ? 'mp4a.40.2' : 'opus';
+        const muxerCodec = container === 'mp4' ? 'aac' : 'A_OPUS';
+        try {
+            const support = await AudioEncoder.isConfigSupported({
+                codec, sampleRate: audioBuffer.sampleRate, numberOfChannels: audioBuffer.numberOfChannels,
+                bitrate: 192000,
+            });
+            if (support && support.supported) return { codec, muxerCodec };
+        } catch (err) { /* unsupported — export video-only */ }
+        return null;
+    }
+
+    // Decodes the original uploaded file's audio independently of the visible
+    // <video> element, since exporting no longer plays it back. Returns null
+    // for silent sources or anything the browser can't decode standalone.
+    async function decodeSourceAudio() {
+        if (!currentSourceFile) return null;
+        try {
+            const arrayBuffer = await currentSourceFile.arrayBuffer();
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            const ctx = new AudioCtx();
+            const buffer = await ctx.decodeAudioData(arrayBuffer);
+            ctx.close();
+            return (buffer && buffer.length > 0) ? buffer : null;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function seekVideoTo(video, t) {
+        return new Promise((resolve) => {
+            if (Math.abs(video.currentTime - t) < 1e-4) { resolve(); return; }
+            const onSeeked = () => { video.removeEventListener('seeked', onSeeked); resolve(); };
+            video.addEventListener('seeked', onSeeked);
+            video.currentTime = t;
+        });
+    }
+
+    async function startOfflineExport() {
+        if (source.type !== 'video' || !isSourceLoaded || isExporting) return;
+        if (!halftoneActive) { generate(); return; }
+
+        const fps = resolveExportFps();
+        const duration = getDuration();
+        if (!duration) {
+            sourceInfo.textContent = 'Video duration unavailable — cannot export.';
+            return;
+        }
+        const totalFrames = Math.max(1, Math.round(duration * fps));
+        const width = mainCanvas.width;
+        const height = mainCanvas.height;
+        const bitrate = parseInt(controls.bitrate.value) * 1000000;
+
+        const videoCodec = await pickOfflineVideoCodec(width, height, bitrate, fps);
+        if (!videoCodec) {
+            sourceInfo.textContent = 'This browser cannot encode video at this resolution.';
+            return;
+        }
+
+        isExporting = true;
+        cancelExportRequested = false;
+        const wasLooping = videoLoop.checked;
+        stopPreview();
+        sourceVideo.pause();
+        sourceVideo.loop = false;
+        videoLoop.checked = false;
+
+        btnExportVideo.textContent = 'Rendering… 0%';
+        btnExportVideo.classList.add('recording');
+        btnExportVideo.disabled = true;
+        btnCancelExport.style.display = 'block';
+        btnCancelExport.disabled = false;
+        btnCancelExport.textContent = 'Cancel';
+        setControlsDisabled(true);
+
+        const finish = () => {
+            sourceVideo.loop = wasLooping;
+            videoLoop.checked = wasLooping;
+            btnExportVideo.textContent = recordLabel();
+            btnExportVideo.classList.remove('recording');
+            btnExportVideo.disabled = !canRecord;
+            btnCancelExport.style.display = 'none';
+            setControlsDisabled(false);
+            isExporting = false;
+            cancelExportRequested = false;
+            drawFrame(); // repaint wherever the scrubber/timeline says we are, not frame 0
+        };
+
+        const audioBuffer = await decodeSourceAudio();
+        const audioCodec = await pickOfflineAudioCodec(videoCodec.container, audioBuffer);
+
+        const MuxerNS = videoCodec.container === 'mp4' ? Mp4Muxer : WebMMuxer;
+        const target = new MuxerNS.ArrayBufferTarget();
+        const muxerOptions = {
+            target,
+            video: { codec: videoCodec.muxerCodec, width, height, frameRate: fps },
+        };
+        if (audioCodec) {
+            muxerOptions.audio = {
+                codec: audioCodec.muxerCodec,
+                numberOfChannels: audioBuffer.numberOfChannels,
+                sampleRate: audioBuffer.sampleRate,
+            };
+        }
+        if (videoCodec.container === 'mp4') muxerOptions.fastStart = 'in-memory';
+        const muxer = new MuxerNS.Muxer(muxerOptions);
+
+        let encodeError = null;
+        const videoEncoder = new VideoEncoder({
+            output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+            error: (e) => { encodeError = e; },
+        });
+        videoEncoder.configure({ codec: videoCodec.codec, width, height, bitrate, framerate: fps });
+
+        let audioEncoder = null;
+        if (audioCodec) {
+            audioEncoder = new AudioEncoder({
+                output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+                error: (e) => { encodeError = e; },
+            });
+            audioEncoder.configure({
+                codec: audioCodec.codec,
+                sampleRate: audioBuffer.sampleRate,
+                numberOfChannels: audioBuffer.numberOfChannels,
+                bitrate: 192000,
+            });
+        }
+
+        const keyframeInterval = Math.max(1, Math.round(fps * 2));
+        const frameDurationUs = Math.round(1000000 / fps);
+
+        try {
+            for (let i = 0; i < totalFrames; i++) {
+                if (encodeError) throw encodeError;
+                if (cancelExportRequested) throw new Error('__cancelled__');
+                const t = Math.min(i / fps, duration);
+                await seekVideoTo(sourceVideo, t);
+                renderCanvas(); // same halftone pipeline as the live preview, crop/resolution included
+
+                const frame = new VideoFrame(mainCanvas, {
+                    timestamp: i * frameDurationUs,
+                    duration: frameDurationUs,
+                });
+                videoEncoder.encode(frame, { keyFrame: i % keyframeInterval === 0 });
+                frame.close();
+
+                if (i % 3 === 0 || i === totalFrames - 1) {
+                    const pct = Math.round(((i + 1) / totalFrames) * 100);
+                    btnExportVideo.textContent = `Rendering… ${pct}%`;
+                    // Yield so the tab stays responsive — rendering speed is the
+                    // only thing pacing this loop now, not real-time playback.
+                    await new Promise((resolve) => setTimeout(resolve, 0));
+                }
+            }
+
+            if (audioEncoder && audioBuffer) {
+                btnExportVideo.textContent = 'Encoding audio…';
+                const chunkFrames = 1024;
+                for (let offset = 0; offset < audioBuffer.length; offset += chunkFrames) {
+                    const frames = Math.min(chunkFrames, audioBuffer.length - offset);
+                    const planar = new Float32Array(frames * audioBuffer.numberOfChannels);
+                    for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
+                        planar.set(audioBuffer.getChannelData(ch).subarray(offset, offset + frames), ch * frames);
+                    }
+                    const audioData = new AudioData({
+                        format: 'f32-planar',
+                        sampleRate: audioBuffer.sampleRate,
+                        numberOfFrames: frames,
+                        numberOfChannels: audioBuffer.numberOfChannels,
+                        timestamp: Math.round((offset / audioBuffer.sampleRate) * 1000000),
+                        data: planar,
+                    });
+                    audioEncoder.encode(audioData);
+                    audioData.close();
+                }
+                await audioEncoder.flush();
+            }
+
+            btnExportVideo.textContent = 'Finalising…';
+            await videoEncoder.flush();
+            if (encodeError) throw encodeError;
+            muxer.finalize();
+
+            const blob = new Blob([target.buffer], { type: videoCodec.container === 'mp4' ? 'video/mp4' : 'video/webm' });
+            downloadBlob(blob, `wpp-dot-illustration.${videoCodec.container}`);
+        } catch (err) {
+            // Cancelling discards everything — no partial file is ever written,
+            // so a downloaded clip always covers the full clip start to end.
+            if (err && err.message === '__cancelled__') describeSource();
+            else sourceInfo.textContent = `Export failed: ${err && err.message ? err.message : err}`;
+        } finally {
+            try { videoEncoder.close(); } catch (e) { /* already closed */ }
+            if (audioEncoder) { try { audioEncoder.close(); } catch (e) { /* already closed */ } }
+            finish();
+        }
+    }
+
+    // --- Legacy export (MediaRecorder, real-time playback) ---
+    // Fallback for browsers without WebCodecs support. Records the halftone
+    // canvas itself, so what you see in the preview is what lands in the
+    // file. Runs the clip once from the start with looping off.
     const RECORD_FORMATS = [
         { mime: 'video/mp4;codecs=avc1.4D401E', ext: 'mp4' },
         { mime: 'video/mp4;codecs=avc1.42E01E', ext: 'mp4' },
@@ -1310,30 +1916,53 @@ ${svgBody}</svg>`;
         return RECORD_FORMATS.find(f => MediaRecorder.isTypeSupported(f.mime)) || null;
     }
 
-    function recordLabel() {
-        const fmt = pickRecordFormat();
-        return fmt ? `Record ${fmt.ext.toUpperCase()}` : 'Record Video';
-    }
-
-    btnExportVideo.addEventListener('click', () => {
-        if (recorder) { finishRecording(); return; }
-        startRecording();
-    });
-
     function startRecording() {
         if (!canRecord || source.type !== 'video' || !isSourceLoaded) return;
         if (!halftoneActive) { generate(); return; }
 
-        const fps = parseInt(controls.previewFps.value);
         const fmt = pickRecordFormat();
         if (!fmt) {
             sourceInfo.textContent = 'This browser cannot record the canvas to a video file.';
             return;
         }
 
+        isExporting = true;
+        loopBeforeRecording = videoLoop.checked;
+        sourceVideo.loop = false;
+        videoLoop.checked = false;
+        sourceVideo.pause();
+
+        btnExportVideo.textContent = 'Preparing… 0%';
+        btnExportVideo.classList.add('recording');
+        btnExportVideo.disabled = true; // runs 0s to end unattended — no manual stop
+        setControlsDisabled(true);
+
+        // Seek to the start and paint that exact frame *before* the canvas is
+        // captured. Capturing first and seeking after left a brief window where
+        // the stream's opening frame was whatever was last on screen (a paused
+        // mid-clip frame), which then visibly cut to frame 0 once playback
+        // caught up.
+        const begin = () => {
+            drawFrame();
+            beginCapture(fmt);
+        };
+        if (sourceVideo.currentTime === 0) {
+            begin();
+        } else {
+            sourceVideo.addEventListener('seeked', begin, { once: true });
+            sourceVideo.currentTime = 0;
+        }
+    }
+
+    function beginCapture(fmt) {
         let stream;
         try {
-            stream = mainCanvas.captureStream(fps);
+            // No fixed frame rate here: the stream captures exactly when the
+            // canvas is repainted (driven by previewLoop, throttled to Preview
+            // Frame Rate) rather than on its own independent timer. The two
+            // clocks previously drifted apart, which duplicated and dropped
+            // frames and made recordings look choppier than the live preview.
+            stream = mainCanvas.captureStream();
             // Carry the source's audio through, when the browser exposes it.
             try {
                 const capture = sourceVideo.captureStream || sourceVideo.mozCaptureStream;
@@ -1354,6 +1983,11 @@ ${svgBody}</svg>`;
         } catch (err) {
             recorder = null;
             sourceInfo.textContent = `Recording failed to start: ${err.message}`;
+            btnExportVideo.textContent = recordLabel();
+            btnExportVideo.classList.remove('recording');
+            btnExportVideo.disabled = !canRecord;
+            setControlsDisabled(false);
+            isExporting = false;
             return;
         }
 
@@ -1363,29 +1997,9 @@ ${svgBody}</svg>`;
         recorder.ondataavailable = (e) => { if (e.data && e.data.size) recordChunks.push(e.data); };
         recorder.onstop = () => finaliseRecording();
 
-        loopBeforeRecording = videoLoop.checked;
-        sourceVideo.loop = false;
-        videoLoop.checked = false;
-        sourceVideo.pause();
-
-        btnExportVideo.textContent = 'Stop • 0%';
-        btnExportVideo.classList.add('recording');
-        setControlsDisabled(true);
-
-        // Only start capturing once frame zero is actually on the canvas,
-        // otherwise the clip opens on whatever frame was last previewed.
-        const begin = () => {
-            drawFrame();
-            recorder.start();
-            startPreview();
-            sourceVideo.play().catch(() => {});
-        };
-        if (sourceVideo.currentTime === 0) {
-            begin();
-        } else {
-            sourceVideo.addEventListener('seeked', begin, { once: true });
-            sourceVideo.currentTime = 0;
-        }
+        recorder.start();
+        startPreview();
+        sourceVideo.play().catch(() => {});
     }
 
     // Saves the file and hands the UI back. Idempotent, because it is reached
@@ -1404,7 +2018,9 @@ ${svgBody}</svg>`;
         videoLoop.checked = loopBeforeRecording;
         btnExportVideo.textContent = recordLabel();
         btnExportVideo.classList.remove('recording');
+        btnExportVideo.disabled = !canRecord;
         setControlsDisabled(false);
+        isExporting = false;
         if (blob.size) downloadBlob(blob, `wpp-dot-illustration.${fmt.ext}`);
         describeSource();
     }
@@ -1429,13 +2045,15 @@ ${svgBody}</svg>`;
         if (r.state !== 'inactive') r.stop();
         btnExportVideo.textContent = recordLabel();
         btnExportVideo.classList.remove('recording');
+        btnExportVideo.disabled = !canRecord;
         setControlsDisabled(false);
+        isExporting = false;
     }
 
     function updateRecordProgress() {
         const duration = getDuration();
         const pct = duration ? Math.min(100, Math.round((sourceVideo.currentTime / duration) * 100)) : 0;
-        btnExportVideo.textContent = `Stop • ${pct}%`;
+        btnExportVideo.textContent = `Preparing… ${pct}%`;
     }
 
     // Freeze settings while recording so the exported clip stays consistent.
@@ -1447,7 +2065,10 @@ ${svgBody}</svg>`;
         imageUpload.disabled = disabled;
         controls.maxFrame.disabled = disabled;
         controls.previewFps.disabled = disabled;
+        controls.exportFps.disabled = disabled;
         controls.bitrate.disabled = disabled;
+        controls.aspectRatio.disabled = disabled;
+        controls.resolutionTier.disabled = disabled;
         timeline.disabled = disabled;
         btnPlay.disabled = disabled;
         videoLoop.disabled = disabled;
@@ -1456,32 +2077,16 @@ ${svgBody}</svg>`;
 
     // --- Reset ---
     function resetControls() {
-        // UPDATED PRESETS
-        controls.maxSize.value = 6;
-        controls.minSize.value = 1;
-        controls.gridSpacing.value = 5;
-        controls.gridType.value = 'hex';
-        controls.renderMode.value = 'tone';
-        controls.contrast.value = 10;
-        controls.threshold.value = 128;
-        controls.opacityVar.value = 0;
-        controls.posJitter.value = 20;
-        controls.sizeJitter.value = 10;
-        controls.colorMode.value = 'single';
-        controls.dotColor.value = '#000050';
-        controls.dotColorHex.value = '#000050';
-        controls.bgColor.value = '#FFFFFF';
-        controls.bgColorHex.value = '#FFFFFF';
-        controls.previewFps.value = '15';
-        controls.maxFrame.value = '0';
-        controls.bitrate.value = '16';
+        presetSelect.value = 'default';
+        applyPreset('default');
 
-        // Update UI displays
-        for(const key in valDisplays) {
-            valDisplays[key].textContent = controls[key].value;
-        }
-        toggleThresholdControl();
-        toggleColorControl();
+        // Fields not covered by a preset.
+        controls.previewFps.value = '15';
+        controls.exportFps.value = '30';
+        controls.maxFrame.value = '0';
+        controls.aspectRatio.value = 'original';
+        controls.resolutionTier.value = 'native';
+        updateExportFpsHint();
 
         if (!isSourceLoaded) return;
         applySourceSize();
@@ -1496,7 +2101,8 @@ ${svgBody}</svg>`;
     }
 
     // --- Init ---
-    canRecord = typeof mainCanvas.captureStream === 'function' && pickRecordFormat() !== null;
+    canRecord = supportsOfflineExport ||
+        (typeof mainCanvas.captureStream === 'function' && pickRecordFormat() !== null);
     btnExportVideo.textContent = recordLabel();
     setupControlListeners();
     toggleThresholdControl();
