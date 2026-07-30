@@ -547,9 +547,9 @@
                 <select id="preview-fps">
                     <option value="8">8 fps (fastest)</option>
                     <option value="12">12 fps</option>
-                    <option value="15" selected="">15 fps</option>
+                    <option value="15">15 fps</option>
                     <option value="24">24 fps</option>
-                    <option value="30">30 fps</option>
+                    <option value="30" selected="">30 fps</option>
                 </select>
                 <p class="hint" style="margin-top: 8px;">On-screen playback smoothness only — it does not affect the
                 exported file.</p>
@@ -663,6 +663,16 @@
                 <label for="size-jitter">Size Variation (%) <span class="val-display" id="val-size-jitter">10</span></label>
                 <input type="range" id="size-jitter" min="0" max="100" value="10">
             </div>
+            <div class="control-item">
+                <label for="dot-animation">Dot Animation</label>
+                <select id="dot-animation">
+                    <option value="static" selected="">Static (locked pattern)</option>
+                    <option value="animated">Animated (shimmering)</option>
+                </select>
+                <p class="hint" style="margin-top: 8px;">Video only. <em>Static</em> keeps each dot in place so only
+                tone changes as the clip plays. <em>Animated</em> re-randomises the jitter every frame for a
+                shimmering, boiling texture.</p>
+            </div>
         </div>
 
         <div class="control-group">
@@ -765,6 +775,7 @@
         opacityVar: document.getElementById('opacity-var'),
         posJitter: document.getElementById('pos-jitter'),
         sizeJitter: document.getElementById('size-jitter'),
+        dotAnimation: document.getElementById('dot-animation'),
         colorMode: document.getElementById('color-mode'),
         dotColor: document.getElementById('dot-color'),
         dotColorHex: document.getElementById('dot-color-hex'),
@@ -1476,6 +1487,15 @@
         const dotHex = controls.dotColor.value;
         const bgHex = controls.bgColor.value;
 
+        // Where jitter comes from. Static hashes the grid cell, so the same frame
+        // always produces the same dots — the pattern holds still across a clip.
+        // Animated re-rolls every render, giving the shimmering "boiling dots"
+        // look. Only distinguishable on video; a still image is one render either
+        // way.
+        const jitterRandom = controls.dotAnimation.value === 'animated'
+            ? () => Math.random()
+            : (col, row, channel) => cellRandom(col, row, channel, jitterSeed);
+
         // Pre-calculate contrast factor
         const contrastFactor = (259 * (contrastVal + 255)) / (255 * (259 - contrastVal));
 
@@ -1521,7 +1541,7 @@
 
                 // Apply Size Jitter
                 if (sizeJitterStr > 0) {
-                    const jitterMult = 1 + (cellRandom(colIdx, rowIdx, 0, jitterSeed) * 2 - 1) * sizeJitterStr; // +/- percentage
+                    const jitterMult = 1 + (jitterRandom(colIdx, rowIdx, 0) * 2 - 1) * sizeJitterStr; // +/- percentage
                     finalRadius *= jitterMult;
                 }
 
@@ -1540,8 +1560,8 @@
                 let finalY = y;
                 if (posJitterStr > 0) {
                     const maxOffset = spacing * posJitterStr * 0.5;
-                    finalX += (cellRandom(colIdx, rowIdx, 1, jitterSeed) * 2 - 1) * maxOffset;
-                    finalY += (cellRandom(colIdx, rowIdx, 2, jitterSeed) * 2 - 1) * maxOffset;
+                    finalX += (jitterRandom(colIdx, rowIdx, 1) * 2 - 1) * maxOffset;
+                    finalY += (jitterRandom(colIdx, rowIdx, 2) * 2 - 1) * maxOffset;
                 }
 
                 // Determine Color
@@ -2065,6 +2085,7 @@ ${svgBody}</svg>`;
         imageUpload.disabled = disabled;
         controls.maxFrame.disabled = disabled;
         controls.previewFps.disabled = disabled;
+        controls.dotAnimation.disabled = disabled;
         controls.exportFps.disabled = disabled;
         controls.bitrate.disabled = disabled;
         controls.aspectRatio.disabled = disabled;
@@ -2081,7 +2102,8 @@ ${svgBody}</svg>`;
         applyPreset('default');
 
         // Fields not covered by a preset.
-        controls.previewFps.value = '15';
+        controls.previewFps.value = '30';
+        controls.dotAnimation.value = 'static';
         controls.exportFps.value = '30';
         controls.maxFrame.value = '0';
         controls.aspectRatio.value = 'original';

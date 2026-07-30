@@ -61,8 +61,13 @@ Style presets (**Default**, **High Contrast Threshold**) set the grid, tone, jit
 ### Variation & jitter
 
 - **Position Jitter** and **Size Variation** — randomised offset and scale per dot
+- **Dot Animation** — **Static** or **Animated**; affects video only
 
-Jitter comes from a hash of each grid cell rather than `Math.random()`, so the pattern is identical every time a given frame is drawn. That's what stops dots crawling between video frames, and it keeps PNG and SVG exports consistent with what's on screen.
+**Static** (default) derives jitter from a hash of each grid cell, so the same frame always produces the same dots. The pattern holds still through a clip and only tone changes — a printed-halftone look, with no dot crawl.
+
+**Animated** re-randomises jitter on every render, so dots shimmer and boil as the video plays. Livelier and more organic, at the cost of a restless pattern.
+
+A still image is a single render either way, so the two are indistinguishable on images. Both modes keep PNG and SVG exports consistent with the frame on screen.
 
 ### Colour & appearance
 
@@ -78,7 +83,7 @@ Both apply to images and video.
 
 ### Video playback & export
 
-- **Preview Frame Rate** — on-screen smoothness only; does not affect the exported file
+- **Preview Frame Rate** — on-screen smoothness only (default 30 fps); does not affect the exported file
 - **Export Frame Rate** — frame rate of the downloaded video (12–60 fps)
 - **Max Frame Size** — caps the longest edge during video *preview* to keep playback responsive
 - **Export Bitrate** — 8 / 16 / 32 / 50 Mbps; halftone dots are fine, high-frequency detail that a low bitrate smears together
